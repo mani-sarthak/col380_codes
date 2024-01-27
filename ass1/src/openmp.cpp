@@ -1,12 +1,12 @@
 #include <bits/stdc++.h>
 #include <omp.h>
+#include <chrono>
 
 using namespace std;
 
 #define eps 1e-4
 #define endl '\n'
 #define check 111
-
 
 // print the matrix of doubles
 void printMatrix(const vector<vector<double> >& mat) {
@@ -19,8 +19,7 @@ void printMatrix(const vector<vector<double> >& mat) {
 }
 
 //initialisation
-void initialise(vector<vector<double> > &L, vector<vector<double> > &U, vector<int> &P){
-    int n = L.size();
+void initialise(double** L, double** U, int* P, int n){
     for (int i=0; i<n; i++){
         P[i] = i;
         for (int j=i; j<n; j++){
@@ -35,8 +34,7 @@ void initialise(vector<vector<double> > &L, vector<vector<double> > &U, vector<i
 
 // LU Decomposition
 
-void LU_Decomposition(vector<vector<double>>& A, vector<vector<double>>& L, vector<vector<double>>& U, vector<int>& P, int num_threads) {
-    int n = A.size();
+void LU_Decomposition(double** A, double** L, double** U, int* P, int n, int num_threads) {
 
     omp_set_num_threads(num_threads);  // Set the number of threads for OpenMP
 
@@ -166,31 +164,45 @@ bool areMatricesEqual(const vector<vector<double> >& A, const vector<vector<doub
     return true;
 }
 
-int main() {
-    int n;
-    cin >> n;
+int main(int argc, char* argv[]) {
 
-    vector<vector<double> > A(n, vector<double>(n)), A2(n, vector<double>(n));
-    vector<vector<double> > L(n, vector<double>(n, 0));
-    vector<vector<double> > U(n, vector<double>(n, 0));
-    vector<int> P(n);
+    if (argc < 2) {
+        cerr << "Input filename required as argument\n";
+        exit(1);
+    }
+    ifstream fin(argv[1]);
+
+    int n;
+    fin >> n;
+
+    double** A = (double**)malloc(sizeof(double*) * n);
+    double** L = (double**)malloc(sizeof(double*) * n);
+    double** U = (double**)malloc(sizeof(double*) * n);
+    int* P = (int*)malloc(sizeof(int) * n);
+    for (int i = 0; i < n; ++i) {
+        A[i] = (double*)malloc(sizeof(double) * n);
+        L[i] = (double*)malloc(sizeof(double) * n);
+        U[i] = (double*)malloc(sizeof(double) * n);
+    }
 
     // read input matrix
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
-            cin >> A[i][j];
-            A2[i][j] = A[i][j];
+            fin >> A[i][j];
         }
     }
 
     // prepare initialisation
-    initialise(L, U, P);
+    initialise(L, U, P, n);
 
-    LU_Decomposition(A2, L, U, P, 4);
-    vector<vector<double> > PA = permute(A, P); 
-    vector<vector<double> > LU = multiply(L, U);
-    bool equal = areMatricesEqual(PA, LU);
-    cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
+    auto start_time = chrono::high_resolution_clock::now();
+    LU_Decomposition(A, L, U, P, n, 1);
+    auto end_time = chrono::high_resolution_clock::now();
+	cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
+    // vector<vector<double> > PA = permute(A, P); 
+    // vector<vector<double> > LU = multiply(L, U);
+    // bool equal = areMatricesEqual(PA, LU);
+    // cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
 
     return 0;
 }

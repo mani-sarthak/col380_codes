@@ -82,53 +82,6 @@ void LU_Decomposition(double** A, double** L, double** U, int* P, int n, int num
 }
 
 
-
-void LU_Decomposition1(vector<vector<double> > &A, vector<vector<double> >& L, vector<vector<double> >& U, vector<int>& P) {
-    int n = A.size();
-
-    for (int k = 0; k < n; k++) {
-        double max = 0.0;
-        int k_pivot = -1;
-
-        // Finding the pivot (This part is not parallelized due to data dependencies)
-        for (int i = k; i < n; i++) {
-            if (abs(A[i][k]) > max) {
-                max = abs(A[i][k]);
-                k_pivot = i;
-            }
-        }
-        if (k_pivot == -1) {
-            throw runtime_error("Singular matrix");
-        }
-
-        // Pivoting (This part is not parallelized due to sequential nature)
-        if (k_pivot != k) {
-            swap(P[k_pivot], P[k]);
-            swap(A[k_pivot], A[k]);
-            for (int j = 0; j < k; j++) {
-                swap(L[k_pivot][j], L[k][j]);
-            }
-        }
-
-        U[k][k] = A[k][k];
-
-        // Parallelize the update of L and U
-        #pragma omp parallel for shared(A, L, U, k, n)
-        for (int i = k + 1; i < n; i++) {
-            L[i][k] = A[i][k] / U[k][k];
-            U[k][i] = A[k][i];
-        }
-
-        // Parallelize the update of matrix A
-        #pragma omp parallel for collapse(2) shared(A, L, U, k, n)
-        for (int i = k + 1; i < n; i++) {
-            for (int j = k + 1; j < n; j++) {
-                A[i][j] -= L[i][k] * U[k][j];
-            }
-        }
-    }
-}
-
 // Function to multiply two matrices
 vector<vector<double> > multiply(const vector<vector<double> >& A, const vector<vector<double> >& B) {
     int n = A.size();
@@ -166,11 +119,12 @@ bool areMatricesEqual(const vector<vector<double> >& A, const vector<vector<doub
 
 int main(int argc, char* argv[]) {
 
-    if (argc < 2) {
-        cerr << "Input filename required as argument\n";
+    if (argc < 3) {
+        cerr << "Input filename and numthread required as argument\n";
         exit(1);
     }
     ifstream fin(argv[1]);
+    int num_threads = stoi(argv[2]);
 
     int n;
     fin >> n;
@@ -196,9 +150,11 @@ int main(int argc, char* argv[]) {
     initialise(L, U, P, n);
 
     auto start_time = chrono::high_resolution_clock::now();
-    LU_Decomposition(A, L, U, P, n, 1);
+    LU_Decomposition(A, L, U, P, n, num_threads);
     auto end_time = chrono::high_resolution_clock::now();
 	cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
+    
+    
     // vector<vector<double> > PA = permute(A, P); 
     // vector<vector<double> > LU = multiply(L, U);
     // bool equal = areMatricesEqual(PA, LU);

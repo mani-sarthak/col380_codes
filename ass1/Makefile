@@ -8,7 +8,7 @@ serial : ./src/serial.cpp
 
 openmp : ./src/openmp.cpp
 	$(CC) $(CFLAGS) -o ./obj/openmp.out ./src/openmp.cpp
-	time ./obj/openmp.out "./test/test_matrix.txt"
+	time ./obj/openmp.out "./test/test_matrix.txt" $(t)
 
 check : ./src/check.cpp
 	$(CC) $(CFLAGS) -o ./obj/check.out ./src/check.cpp

@@ -9,7 +9,7 @@ using namespace chrono;
 int n, num_thread;
 bool randomize = false;
 string testcase="";
-ofstream output_P, output_L, output_U;
+// ofstream output_P, output_L, output_U;
 double delta = 0.000000001;                            // very small value
 
 void initialize_A(double** A, double** Areal)
@@ -90,9 +90,9 @@ void freeMemory(double** matrix)
 
 void lu_decomposition()
 {
-    output_P.open("P_"+to_string(n)+"_"+to_string(num_thread)+"threads.txt");    // files to save P,L and U matrix
-    output_L.open("L_"+to_string(n)+"_"+to_string(num_thread)+"threads.txt");
-    output_U.open("U_"+to_string(n)+"_"+to_string(num_thread)+"threads.txt");
+    // output_P.open("P_"+to_string(n)+"_"+to_string(num_thread)+"threads.txt");    // files to save P,L and U matrix
+    // output_L.open("L_"+to_string(n)+"_"+to_string(num_thread)+"threads.txt");
+    // output_U.open("U_"+to_string(n)+"_"+to_string(num_thread)+"threads.txt");
 
 
     int* pi = (int*)malloc(n * sizeof(int));
@@ -159,9 +159,9 @@ void lu_decomposition()
     
     // cout << "Residue: " << calculate_residue(P, Areal, L, U)<<"\n";
 
-    output_P<<print_matrix(P);
-    output_L<<print_matrix(L);
-    output_U<<print_matrix(U);
+    // output_P<<print_matrix(P);
+    // output_L<<print_matrix(L);
+    // output_U<<print_matrix(U);
 
     freeMemory(P);                                // deleting all variables with significant memory size
     freeMemory(A);
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
 {
     n = stoi(argv[1]), num_thread = stoi(argv[2]), testcase=argv[3];
     if(argc>4 && stoi(argv[4])==1){
-        randomize=true;
+        randomize=false;
     }
 
     cout << "*********OPENMP***************\n";

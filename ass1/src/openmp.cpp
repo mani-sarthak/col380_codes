@@ -83,8 +83,7 @@ void LU_Decomposition(double** A, double** L, double** U, int* P, int n, int num
 
 
 // Function to multiply two matrices
-vector<vector<double> > multiply(const vector<vector<double> >& A, const vector<vector<double> >& B) {
-    int n = A.size();
+vector<vector<double> > multiply(double** A, double** B, int n) {
     vector<vector<double> > result(n, vector<double>(n, 0));
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
@@ -97,18 +96,18 @@ vector<vector<double> > multiply(const vector<vector<double> >& A, const vector<
 }
 
 // Function to apply permutation vector to a matrix
-vector<vector<double> > permute(const vector<vector<double> >& A, const vector<int>& P) {
-    int n = A.size();
-    vector<vector<double> > PA = vector<vector<double> >(n, vector<double>(n, 0));
+vector<vector<double> > permute(double** A, int* P, int n) {
+    vector<vector<double>> PA(n, vector<double>(n, 0));
     for (int i = 0; i < n; ++i) {
-        PA[i] = A[P[i]];
+        for (int j = 0; j < n; j++) {
+            PA[i][j] = A[P[i]][j];
+        }
     }
     return PA;
 }
 
 // Function to check if two matrices are equal
-bool areMatricesEqual(const vector<vector<double> >& A, const vector<vector<double> >& B) {
-    int n = A.size();
+bool areMatricesEqual(vector<vector<double>> A, const vector<vector<double> >& B, int n) {
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (abs(A[i][j] - B[i][j]) > eps) return false;
@@ -130,11 +129,13 @@ int main(int argc, char* argv[]) {
     fin >> n;
 
     double** A = (double**)malloc(sizeof(double*) * n);
+    double** A_copy = (double**)malloc(sizeof(double*) * n);
     double** L = (double**)malloc(sizeof(double*) * n);
     double** U = (double**)malloc(sizeof(double*) * n);
     int* P = (int*)malloc(sizeof(int) * n);
     for (int i = 0; i < n; ++i) {
         A[i] = (double*)malloc(sizeof(double) * n);
+        A_copy[i] = (double*)malloc(sizeof(double) * n);
         L[i] = (double*)malloc(sizeof(double) * n);
         U[i] = (double*)malloc(sizeof(double) * n);
     }
@@ -143,6 +144,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             fin >> A[i][j];
+            A_copy[i][j] = A[i][j];
         }
     }
 
@@ -155,10 +157,10 @@ int main(int argc, char* argv[]) {
 	cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
     
     
-    // vector<vector<double> > PA = permute(A, P); 
-    // vector<vector<double> > LU = multiply(L, U);
-    // bool equal = areMatricesEqual(PA, LU);
-    // cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
+    vector<vector<double> > PA = permute(A_copy, P, n);
+    vector<vector<double> > LU = multiply(L, U, n);
+    bool equal = areMatricesEqual(PA, LU, n);
+    cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
 
     return 0;
 }

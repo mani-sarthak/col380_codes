@@ -18,5 +18,9 @@ gen: ./test/generate.cpp
 	$(CC) $(CFLAGS) -o ./obj/gen.out ./test/generate.cpp
 	./obj/gen.out > ./test/test_matrix.txt
 
+yash: ./src/yash.cpp
+	$(CC) $(CFLAGS) -o ./obj/yash.out ./src/yash.cpp
+	time ./obj/yash.out < ./test/test_matrix.txt
+
 clean: 
 	rm ./out/*

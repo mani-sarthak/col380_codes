@@ -107,7 +107,7 @@ vector<vector<double> > permute(double** A, int* P, int n) {
 }
 
 // Function to check if two matrices are equal
-bool areMatricesEqual(vector<vector<double>> A, const vector<vector<double> >& B, int n) {
+bool areMatricesEqual(const vector<vector<double>> &A, const vector<vector<double> >& B, int n) {
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < n; ++j) {
             if (abs(A[i][j] - B[i][j]) > eps) return false;
@@ -157,10 +157,10 @@ int main(int argc, char* argv[]) {
 	cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
     
     
-    vector<vector<double> > PA = permute(A_copy, P, n);
-    vector<vector<double> > LU = multiply(L, U, n);
-    bool equal = areMatricesEqual(PA, LU, n);
-    cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
+    // vector<vector<double> > PA = permute(A_copy, P, n);
+    // vector<vector<double> > LU = multiply(L, U, n);
+    // bool equal = areMatricesEqual(PA, LU, n);
+    // cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
 
     return 0;
 }

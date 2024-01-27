@@ -1,0 +1,4 @@
+make[1]: Entering directory `/home/easha/IITD/col380_codes/ass1'
+g++ -fopenmp -pthread -O3 -faggressive-loop-optimizations -funroll-all-loops -o ./obj/openmp.out ./src/openmp.cpp
+./obj/openmp.out "./test/test_matrix.txt" 16
+make[1]: Leaving directory `/home/easha/IITD/col380_codes/ass1'

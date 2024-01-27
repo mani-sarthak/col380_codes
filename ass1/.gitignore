@@ -1,4 +1,5 @@
-
-/test/*
 /ps/*
 /obj/*
+# /log/*
+*.txt
+!todo.txt

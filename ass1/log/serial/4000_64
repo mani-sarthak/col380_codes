@@ -1,0 +1,2 @@
+time ./obj/serial.out < ./test/test_matrix.txt
+Execution time: 23.3876 seconds

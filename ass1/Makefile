@@ -8,7 +8,7 @@ serial : ./src/serial.cpp
 
 openmp : ./src/openmp.cpp
 	$(CC) $(CFLAGS) -o ./obj/openmp.out ./src/openmp.cpp
-	time ./obj/openmp.out < ./test/test_matrix.txt
+	time ./obj/openmp.out "./test/test_matrix.txt"
 
 check : ./src/check.cpp
 	$(CC) $(CFLAGS) -o ./obj/check.out ./src/check.cpp
@@ -20,7 +20,7 @@ gen: ./test/generate.cpp
 
 yash: ./src/yash.cpp
 	$(CC) $(CFLAGS) -o ./obj/yash.out ./src/yash.cpp
-	time ./obj/yash.out < ./test/test_matrix.txt
+	time ./obj/yash.out $(size) $(num) ./test/test_matrix.txt 1
 
 clean: 
 	rm ./out/*

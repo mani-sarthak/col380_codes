@@ -18,15 +18,6 @@ void printMatrix(double** mat, int n) {
     }
 }
 
-// print the matrix of doubles
-void printMatrix(const vector<vector<double> >& mat) {
-    for (const auto& row : mat) {
-        for (int i = 0; i < row.size(); i++) {
-            cout << row[i] << " \n"[i == row.size() - 1];
-        }
-    }
-}
-
 //initialisation
 void initialise(double** L, double** U, int* P, int n){
     for (int i=0; i<n; i++){
@@ -48,13 +39,14 @@ void LU_Decomposition(double** A, double** L, double** U, int* P, int n, int num
     omp_set_num_threads(num_threads);  // Set the number of threads for OpenMP
 
     for (int k = 0; k < n; k++) {
-        double max = 0.0;
+        double max_element = 0.0;
         int k_pivot = -1;
 
         // Finding the pivot
         for (int i = k; i < n; i++) {
-            if (abs(A[i][k]) > max) {
-                max = abs(A[i][k]);
+            double x = abs(A[i][k]);
+            if (x > max_element) {
+                max_element = x;
                 k_pivot = i;
             }
         }
@@ -66,25 +58,28 @@ void LU_Decomposition(double** A, double** L, double** U, int* P, int n, int num
         if (k_pivot != k) {
             swap(P[k_pivot], P[k]);
             swap(A[k_pivot], A[k]);
+            double* L_k_row = L[k];
+            double* L_pivot_row = L[k_pivot];
             for (int j = 0; j < k; j++) {
-                swap(L[k_pivot][j], L[k][j]);
+                swap(L_pivot_row[j], L_k_row[j]);
             }
         }
 
-        U[k][k] = A[k][k];
+        double* U_row = U[k];
+        double* A_row = A[k];
+        double U_diag = A_row[k];
+        U_row[k] = U_diag;
 
-        // Parallelize the update of L and U
-        #pragma omp parallel for shared(A, L, U, k, n)
-        for (int i = k + 1; i < n; i++) {
-            L[i][k] = A[i][k] / U[k][k];
-            U[k][i] = A[k][i];
+        for (int i = k + 1; i < n; i++){
+            L[i][k] = A[i][k] / U_diag;
+            U_row[i] = A_row[i];
         }
 
         // Parallelize the update of matrix A
         #pragma omp parallel for collapse(2) shared(A, L, U, k, n)
         for (int i = k + 1; i < n; i++) {
             for (int j = k + 1; j < n; j++) {
-                A[i][j] -= L[i][k] * U[k][j];
+                A[i][j] -= L[i][k] * U_row[j];
             }
         }
     }
@@ -124,7 +119,9 @@ bool areMatricesEqual(double** A, double** B, int n) {
         for (int i = 0; i < n; ++i) {
             double x = abs(A[i][j] - B[i][j]);
             col_err += x * x;
-            if (abs(A[i][j] - B[i][j]) > eps) return false;
+            if (x > eps) {
+                return false;
+            }
         }
         norm_val += sqrt(col_err);
     }

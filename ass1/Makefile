@@ -1,26 +1,26 @@
-CC = g++
-CFLAGS = -fopenmp -pthread
+CC = gcc
+CXX = g++
 .PHONY: test
 
 
-serial : ./src/serial.cpp
+sequential : ./src/sequential.cpp
 	mkdir -p obj
-	$(CC) $(CFLAGS) -o ./obj/serial.out ./src/serial.cpp
-	./obj/serial.out "./test/test_matrix.txt"
+	$(CXX) -o ./obj/sequential.out ./src/sequential.cpp
+	./obj/sequential.out "./test/test_matrix.txt"
 
 openmp : ./src/openmp.cpp
 	mkdir -p obj
-	$(CC) $(CFLAGS) -o ./obj/openmp.out ./src/openmp.cpp
+	$(CXX) -fopenmp -o ./obj/openmp.out ./src/openmp.cpp
 	./obj/openmp.out "./test/test_matrix.txt" $(num)
 
 pthread: ./src/pthread.cpp
 	mkdir -p obj
-	$(CC) $(CFLAGS) ./src/pthread.cpp -o ./obj/pthread.out
+	$(CXX) -pthread ./src/pthread.cpp -o ./obj/pthread.out
 	./obj/pthread.out "./test/test_matrix.txt" $(num)
 
 gen: ./test/generate.c
 	mkdir -p obj
-	gcc -o ./obj/gen.out ./test/generate.c
+	$(CC) -o ./obj/gen.out ./test/generate.c
 	./obj/gen.out $(size) ./test/test_matrix.txt
 
 test:

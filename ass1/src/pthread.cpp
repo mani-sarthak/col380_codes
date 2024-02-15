@@ -1,5 +1,5 @@
-#include <pthread.h>
 #include <bits/stdc++.h>
+#include <pthread.h>
 #include <chrono>
 
 
@@ -10,7 +10,6 @@ using namespace std;
 #define check 111
 
 int NUM_THREADS;
-int N;
 
 double norm_val = 0.0;
 
@@ -26,12 +25,14 @@ void printMatrix(double** mat, int n) {
 void initialise(double** L, double** U, int* P, int n){
     for (int i=0; i<n; i++){
         P[i] = i;
+        double* L_row = L[i];
+        double* U_row = U[i];
         for (int j=i; j<n; j++){
-            U[i][j] = check;
+            U_row[j] = check;
         }
-        L[i][i] = 1;
+        L_row[i] = 1;
         for (int j=0; j<i; j++){
-            L[i][j] = check;
+            L_row[j] = check;
         }
     }
 }
@@ -63,10 +64,12 @@ void* matrix_update(void* threadarg) {
     }
 
     // check for loop invariant here
-    for(int i=(k+1) + start; i < (k+1)+(tid+1)*(n-(k+1))/NUM_THREADS; i++){		
-    // for(int i=(k+1) + start; i < (k+1)+start + rows_to_process; i++){										
-        for(int j=k+1; j < n; j++){
-            A[i][j] -= L[i][k]*U[k][j];   
+    for(int i = (k+1) + start; i < (k+1) + ((tid+1)*(n-(k+1))) / NUM_THREADS; i++){		
+        double x = L[i][k];
+        double* A_row = A[i];
+        double* U_row = U[k];
+        for(int j = k + 1; j < n; j++){
+            A_row[j] -= x * U_row[j];   
         }
     }
 
@@ -79,12 +82,12 @@ void LU_Decomposition_Parallel(double** A, double** L, double** U, int* P, int n
 
 
     // serial code for pivot_search
-    for (int k=0; k < n; k++){
-        double max = 0.0;
+    for (int k = 0; k < n; k++){
+        double max_element = 0.0;
         int k_pivot = -1;
         for (int i=k; i<n; i++){
-            if (abs(A[i][k]) > max){
-                max = abs(A[i][k]);
+            if (abs(A[i][k]) > max_element){
+                max_element = abs(A[i][k]);
                 k_pivot = i;
             }
         }
@@ -99,14 +102,16 @@ void LU_Decomposition_Parallel(double** A, double** L, double** U, int* P, int n
                 swap(L[k_pivot][j], L[k][j]);
             }
         }
-        
-        
+
         U[k][k] = A[k][k];
+        double U_diag = U[k][k];
+        double* U_row = U[k];
+        double* A_row = A[k];
         for (int i=k+1; i<n; i++){
-            L[i][k] = A[i][k] / U[k][k];
-            U[k][i] = A[k][i];
+            L[i][k] = A[i][k] / U_diag;
+            U_row[i] = A_row[i];
         }
-            
+
         // parallel section O(n^3)
         for (int i=0; i<NUM_THREADS; i++){
             thread_data_array[i].thread_id = i;
@@ -126,6 +131,7 @@ void LU_Decomposition_Parallel(double** A, double** L, double** U, int* P, int n
             //     A[i][j] = A[i][j] - L[i][k] * U[k][j];
             // }
         }    
+
         for (int i=0; i<NUM_THREADS; i++){
             pthread_join(threads[i], NULL);
         }    
@@ -166,7 +172,9 @@ bool areMatricesEqual(double** A, double** B, int n) {
         for (int i = 0; i < n; ++i) {
             double x = abs(A[i][j] - B[i][j]);
             col_err += x * x;
-            if (abs(A[i][j] - B[i][j]) > eps) return false;
+            if (x > eps) {
+                return false;
+            }
         }
         norm_val += sqrt(col_err);
     }
@@ -186,9 +194,7 @@ int main(int argc, char** argv) {
 
     int n;
     fin >> n;
-    N = n;
 
-    
     double** A = (double**)malloc(sizeof(double*) * n);
     double** A_copy = (double**)malloc(sizeof(double*) * n);
     double** L = (double**)malloc(sizeof(double*) * n);
@@ -215,7 +221,7 @@ int main(int argc, char** argv) {
     LU_Decomposition_Parallel(A, L, U, P, n);
     auto end_time = chrono::high_resolution_clock::now();
     cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
-    
+
     // double** PA = permute(A_copy, P, n);
     // double** LU = multiply(L, U, n);
     // bool equal = areMatricesEqual(PA, LU, n);

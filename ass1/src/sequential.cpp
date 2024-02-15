@@ -1,4 +1,6 @@
 #include <bits/stdc++.h>
+#include <chrono>
+
 using namespace std;
 
 #define eps 1e-4
@@ -8,12 +10,11 @@ using namespace std;
 double norm_val = 0.0;
 
 // print the matrix of doubles
-void printMatrix(const vector<vector<double> >& mat) {
-    for (const auto& row : mat) {
-        for (double val : row) {
-            cout << val << "\t";
+void printMatrix(double** mat, int n) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            cout << mat[i][j] << " \n"[j == n-1];
         }
-        cout << endl;
     }
 }
 
@@ -102,7 +103,9 @@ bool areMatricesEqual(double** A, double** B, int n) {
         for (int i = 0; i < n; ++i) {
             double x = abs(A[i][j] - B[i][j]);
             col_err += x * x;
-            if (abs(A[i][j] - B[i][j]) > eps) return false;
+            if (x > eps) {
+                return false;
+            }
         }
         norm_val += sqrt(col_err);
     }
@@ -148,10 +151,17 @@ int main(int argc, char* argv[]) {
     auto end_time = chrono::high_resolution_clock::now();
     cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
 
-    // double** PA = permute(A, P, n); 
+    // double** PA = permute(A_copy, P, n);
     // double** LU = multiply(L, U, n);
-    // bool equal = areMatricesEqual(PA, LU);
-    // cout << "Are PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
+    // bool equal = areMatricesEqual(PA, LU, n);
+    // cout << "Matrix PA\n" << fixed << setprecision(6);
+    // printMatrix(PA);
+    // cout << "\nMatrix L\n";
+    // printMatrix(L, n);
+    // cout << "\nMatrix U\n";
+    // printMatrix(U, n);
+    // cout << "\nAre PA and LU equaln with epsilon tolerance ? \n" << (equal ? "Yes" : "No") << endl;
+    // cout << scientific << "Norm value: " << norm_val << endl;
 
     return 0;
 }

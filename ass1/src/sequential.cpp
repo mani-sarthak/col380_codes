@@ -3,7 +3,7 @@
 
 using namespace std;
 
-#define eps 1e-4
+#define eps 1e-9
 #define endl '\n'
 #define check 111
 

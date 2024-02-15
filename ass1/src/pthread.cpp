@@ -63,7 +63,6 @@ void* matrix_update(void* threadarg) {
         rows_to_process = n - (k+1) - start;
     }
 
-    // check for loop invariant here
     for(int i = (k+1) + start; i < (k+1) + ((tid+1)*(n-(k+1))) / NUM_THREADS; i++){		
         double x = L[i][k];
         double* A_row = A[i];
@@ -127,9 +126,6 @@ void LU_Decomposition_Parallel(double** A, double** L, double** U, int* P, int n
                 cout << "Error:unable to create thread," << rc << endl;
                 exit(-1);
             }
-            // for (int j=start; j<end; j++){
-            //     A[i][j] = A[i][j] - L[i][k] * U[k][j];
-            // }
         }    
 
         for (int i=0; i<NUM_THREADS; i++){

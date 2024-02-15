@@ -76,9 +76,11 @@ double** multiply(double** A, double** B, int n) {
     for (int i = 0; i < n; ++i) {
         result[i] = (double*)malloc(n * sizeof(double));
         for (int j = 0; j < n; ++j) {
+            double temp = 0;
             for (int k = 0; k < n; ++k) {
-                result[i][j] += A[i][k] * B[k][j]; // look for cache coherence in this.
+                temp += A[i][k] * B[k][j]; // look for cache coherence in this.
             }
+            result[i][j] = temp;
         }
     }
     return result;
@@ -151,11 +153,11 @@ int main(int argc, char* argv[]) {
     auto end_time = chrono::high_resolution_clock::now();
     cout << "Execution time: " << std::chrono::duration_cast<std::chrono::duration<double>>(end_time - start_time).count() << " seconds" << endl;
 
-    // double** PA = permute(A_copy, P, n);
+    // double** PA = permute(A, P, n);
     // double** LU = multiply(L, U, n);
     // bool equal = areMatricesEqual(PA, LU, n);
     // cout << "Matrix PA\n" << fixed << setprecision(6);
-    // printMatrix(PA);
+    // printMatrix(PA, n);
     // cout << "\nMatrix L\n";
     // printMatrix(L, n);
     // cout << "\nMatrix U\n";

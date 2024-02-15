@@ -36,11 +36,12 @@ void initialise(double** L, double** U, int* P, int n){
 void LU_Decomposition(double** A, double** L, double** U, int* P, int n) {
 
     for (int k=0; k < n; k++){
-        double max = 0.0;
+        double max_element = 0.0;
         int k_pivot = -1;
         for (int i=k; i<n; i++){
-            if (abs(A[i][k]) > max){
-                max = abs(A[i][k]);
+            double x = fabs(A[i][k]);
+            if (x > max_element){
+                max_element = x;
                 k_pivot = i;
             }
         }
@@ -51,19 +52,28 @@ void LU_Decomposition(double** A, double** L, double** U, int* P, int n) {
         if (k_pivot != k){
             swap(P[k_pivot], P[k]);
             swap(A[k_pivot], A[k]);
-            for (int j=0; j<k; j++){
-                swap(L[k_pivot][j], L[k][j]);
+            double* L_k_row = L[k];
+            double* L_pivot_row = L[k_pivot];
+            for (int j = 0; j < k; j++) {
+                swap(L_pivot_row[j], L_k_row[j]);
             }
         }
-        U[k][k] = A[k][k];
-        for (int i=k+1; i<n; i++){
-            L[i][k] = A[i][k] / U[k][k];
-            U[k][i] = A[k][i];
+
+        double* U_row = U[k];
+        double* A_row = A[k];
+        double U_diag = A_row[k];
+        U_row[k] = U_diag;
+
+        for (int i = k + 1; i < n; i++){
+            L[i][k] = A[i][k] / U_diag;
+            U_row[i] = A_row[i];
         }
 
-        for (int i=k+1; i<n; i++){
-            for (int j=k+1; j<n; j++){
-                A[i][j] = A[i][j] - L[i][k] * U[k][j];
+        for (int i=k+1; i < n; i++){
+            double* L_row = L[i];
+            double* A_row = A[i];
+            for (int j=k+1; j < n; j++){
+                A_row[j] -= L_row[k] * U_row[j];
             }
         }
     }

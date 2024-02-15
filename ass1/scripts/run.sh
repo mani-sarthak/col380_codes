@@ -5,7 +5,7 @@ test_count=1
 max_threads=$(($(nproc --all)))
 
 mkdir -p log/pthread
-for ((thread_count = 1; thread_count <= $max_threads; thread_count *= 2)); do
+for ((thread_count = 1; thread_count <= 16; thread_count *= 2)); do
 
     echo "Testing for $thread_count thread(s)"
     for size in ${sizes[*]}; do
@@ -30,7 +30,7 @@ done
 
 
 mkdir -p log/openmp
-for ((thread_count = 1; thread_count <= $max_threads; thread_count *= 2)); do
+for ((thread_count = 1; thread_count <= 16; thread_count *= 2)); do
 
     echo "Testing for $thread_count thread(s)"
     for size in ${sizes[*]}; do
@@ -61,10 +61,10 @@ for size in ${sizes[*]}; do
 
         make gen size=$size > /dev/null
         output="$(make sequential)"
-        echo "$output" | grep "time" >> "./log/sequential/${size}_${thread_count}"
+        echo "$output" | grep "time" >> "./log/sequential/${size}"
 
         if [[ $i == 0 ]]; then
-            echo "$output" | grep -v "time" >> "./log/sequential/${size}_${thread_count}_out"
+            echo "$output" | grep -v "time" >> "./log/sequential/${size}_out"
         fi
 
     done

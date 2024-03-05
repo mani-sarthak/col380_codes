@@ -14,22 +14,62 @@ void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &ker
     int m = input[0].size();
     int k = kernel.size();
     int l = kernel[0].size();
-    int o_n = output.size();
-    int o_m = output[0].size();
-    assert(o_n == n + k - 1);
-    assert(o_m == m + l - 1);
+    int o_n = n + k - 1;
+    int o_m = m + l - 1;
+    vector<vector<data_type> > temp(o_n, vector<data_type>(o_m));
     for (int x = 0; x < o_n; x++){
         for (int y = 0; y < o_m; y++){
-            output[x][y] = 0;
+            temp[x][y] = 0;
             for (int u=0; u<=x; u++){
                 for (int v=0; v <= y; v++){
                     if (u < n && v < m && x-u < k && y-v < l) 
-                    output[x][y] += (input[u][v] * kernel[x-u][y-v]);
+                    temp[x][y] += (input[u][v] * kernel[x-u][y-v]);
                 }
             }
         }
     }
+    assert(output.size() == n - k + 1);
+    assert(output[0].size() == m - l + 1);
+    for (int i = 0; i < n - k + 1; i++){
+        for (int j = 0; j < m - l + 1; j++){
+            output[i][j] = temp[i + k - 1][j + l - 1];
+        }
+    }
 }
+
+
+
+void pad(vector<vector<data_type> > &input, int pad_size, vector<vector<data_type> > &output){
+    int n = input.size();
+    int m = input[0].size();
+    int o_n = n + 2 * pad_size;
+    int o_m = m + 2 * pad_size;
+    output.resize(o_n, vector<data_type>(o_m));
+    for (int i = 0; i < o_n; i++){
+        for (int j = 0; j < o_m; j++){
+            if (i < pad_size || j < pad_size || i >= n + pad_size || j >= m + pad_size){
+                output[i][j] = 0;
+            }
+            else{
+                output[i][j] = input[i - pad_size][j - pad_size];
+            }
+        }
+    }
+}
+
+
+void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
+    vector<vector<data_type> > padded;
+    assert(kernel.size() % 2 == 1);
+    assert(kernel.size() == kernel[0].size());
+    int pad_size = (kernel.size() - 1) / 2;
+    pad(input, pad_size, padded);
+    cout << padded.size() << " " << padded[0].size() << endl;
+    cout << kernel.size() << " " << kernel[0].size() << endl;
+    cout << input.size() << " " << input[0].size() << endl;
+    convolve(padded, kernel, output);
+}
+
 
 data_type relu(data_type inp){
     return max(inp, (data_type)0);
@@ -88,32 +128,32 @@ void print_matrix(vector<vector<data_type> > &mat){
 
 void fetchSize(int argc, char* argv[]){
     if (argc == 1){
-        INP_N = 3;
-        KER_N = 2;
-        FINAL_N = INP_N + KER_N - 1;
+        INP_N = 5;
+        KER_N = 3;
+        FINAL_N = INP_N - KER_N + 1;
     }
     else if (argc ==2){
         INP_N = atoi(argv[1]);
         KER_N = 3;
-        assert(INP_N + KER_N - 1  > 0);
-        FINAL_N = INP_N + KER_N - 1;
+        assert(INP_N - KER_N + 1  > 0);
+        FINAL_N = INP_N - KER_N + 1;
     }
     else if (argc == 3){
         INP_N = atoi(argv[1]);
         KER_N = atoi(argv[2]);
-        assert(INP_N + KER_N - 1  > 0);
-        FINAL_N = INP_N + KER_N - 1;
+        assert(INP_N - KER_N + 1  > 0);
+        FINAL_N = INP_N - KER_N + 1;
     }
     // else if (argc == 4){
     //     INP_N = atoi(argv[1]);
     //     KER_N = atoi(argv[2]);
-    //     assert(INP_N + KER_N - 1  > 0);
+    //     assert(INP_N - KER_N + 1  > 0);
     //     bool flag = atoi(argv[3]);
     //     if (flag){
     //         FINAL_N = INP_N;
     //     }
     //     else{
-    //         FINAL_N = INP_N + KER_N - 1;
+    //         FINAL_N = INP_N - KER_N + 1;
     //     }
     // }
     else{
@@ -166,19 +206,26 @@ int main(int argc, char* argv[]){
             kernel[i][j] = 1;
         }
     }
-    // Do the computation
-
-    convolve(input, kernel, output);
-   
-
-    // 
 
 
     print_matrix(input);
     print_matrix(kernel);
+
+
+    // Do the computation
+
+    convolve(input, kernel, output);
+    print_matrix(output);
+    convolve_and_pad(input, kernel, output);
     print_matrix(output);
 
-    applyActivation(output, relu);
+    // 
+
+
+    
+    
+
+    applyActivation(output, tanh_activation);
     print_matrix(output);
 
 

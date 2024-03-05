@@ -3,14 +3,12 @@ using namespace std;
 
 
 #define data_type float
-// contains the serial functions
 
 int INP_N, KER_N, FINAL_N;
-bool SHRINK = true;
 
-//convolution of matrix
-// NEED MODIFY THIS FOR PADDING
-void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
+void print_matrix(vector<vector<data_type> > &mat);
+
+void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool SHRINK = true){
     int n = input.size();
     int m = input[0].size();
     int k = kernel.size();
@@ -40,50 +38,19 @@ void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &ker
     }
     else {
         int pad_size = (kernel.size() - 1) / 2;
-        assert(output.size() == n - 2*pad_size );
-        assert(output[0].size() == m - 2*pad_size );
+        assert(output.size() == o_n - 2*pad_size );
+        assert(output[0].size() == o_m - 2*pad_size );
         for (int i = 0; i < n ; i++){
             for (int j = 0; j < m ; j++){
                 output[i][j] = temp[i + pad_size][j + pad_size];
             }
         }
-
     }
 }
-
-
-
-void pad(vector<vector<data_type> > &input, int pad_size, vector<vector<data_type> > &output){
-    int n = input.size();
-    int m = input[0].size();
-    int o_n = n + 2 * pad_size;
-    int o_m = m + 2 * pad_size;
-    output.resize(o_n, vector<data_type>(o_m));
-    for (int i = 0; i < o_n; i++){
-        for (int j = 0; j < o_m; j++){
-            if (i < pad_size || j < pad_size || i >= n + pad_size || j >= m + pad_size){
-                output[i][j] = 0;
-            }
-            else{
-                output[i][j] = input[i - pad_size][j - pad_size];
-            }
-        }
-    }
-}
-
 
 void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
-    vector<vector<data_type> > padded;
-    assert(kernel.size() % 2 == 1);
-    assert(kernel.size() == kernel[0].size());
-    int pad_size = (kernel.size() - 1) / 2;
-    pad(input, pad_size, padded);
-    cout << padded.size() << " " << padded[0].size() << endl;
-    cout << kernel.size() << " " << kernel[0].size() << endl;
-    cout << input.size() << " " << input[0].size() << endl;
-    convolve(padded, kernel, output);
+    convolve(input, kernel, output, false);
 }
-
 
 data_type relu(data_type inp){
     return max(inp, (data_type)0);
@@ -102,10 +69,8 @@ void applyActivation(vector<vector<data_type> > &mat, function<data_type(data_ty
     }
 }
 
-// initialize the matrices
-
 void changeMatrixEntry(data_type &inp){
-    inp = (inp - 0.5) * 2;
+
 }
 
 void init_matrix(vector<vector<data_type> > &mat){
@@ -119,17 +84,12 @@ void init_matrix(vector<vector<data_type> > &mat){
 }
 
 
-void initialise(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
-    input.resize(INP_N, vector<data_type>(INP_N));
-    kernel.resize(KER_N, vector<data_type>(KER_N));
-    output.resize(FINAL_N, vector<data_type>(FINAL_N));
+void initialise(vector<vector<data_type> > &input, int n){
+    input.resize(n, vector<data_type>(n));
     init_matrix(input);
-    init_matrix(kernel);
-    SHRINK = false;
 }
 
 
-// print the matrix
 void print_matrix(vector<vector<data_type> > &mat){
     int size = mat.size();
     for (int i = 0; i < size; i++){
@@ -141,10 +101,75 @@ void print_matrix(vector<vector<data_type> > &mat){
     cout << endl;
 }
 
+void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+    int n = input.size();
+    int m = input[0].size();
+    int o_n = n / pool_size;
+    int o_m = m / pool_size;
+    assert(output.size() == o_n);
+    assert(output[0].size() == o_m);
+    for (int i = 0; i < o_n; i++){
+        for (int j = 0; j < o_m; j++){
+            data_type max_val = -1e9;
+            for (int x = i*pool_size; x < (i+1)*pool_size; x++){
+                for (int y = j*pool_size; y < (j+1)*pool_size; y++){
+                    max_val = max(max_val, input[x][y]);
+                }
+            }
+            output[i][j] = max_val;
+        }
+    }
+}
+
+void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+    int n = input.size();
+    int m = input[0].size();
+    int o_n = n / pool_size;
+    int o_m = m / pool_size;
+    assert(output.size() == o_n);
+    assert(output[0].size() == o_m);
+    for (int i = 0; i < o_n; i++){
+        for (int j = 0; j < o_m; j++){
+            data_type sum = 0;
+            for (int x = i*pool_size; x < (i+1)*pool_size; x++){
+                for (int y = j*pool_size; y < (j+1)*pool_size; y++){
+                    sum += input[x][y];
+                }
+            }
+            output[i][j] = sum / (pool_size * pool_size);
+        }
+    }
+}
+
+vector<data_type> softmax(vector<data_type> &inp){
+    vector<data_type> res;
+    data_type sum = 0;
+    for (int i=0; i<inp.size(); i++){
+        sum += exp(inp[i]);
+    }
+    for (int i=0; i<inp.size(); i++){
+        res.push_back(exp(inp[i]) / sum);
+    }
+    return res;
+}
+
+vector<data_type> sigmoid(vector<data_type> &inp){
+    vector<data_type> res;
+    for (int i=0; i<inp.size(); i++){
+        res.push_back(1 / (1 + exp(-inp[i])));
+    }
+    return res;
+}
+
+void applyNormalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation){
+    out = normalisation(inp);
+}
+
 void fetchSize(int argc, char* argv[]){
     if (argc == 1){
-        INP_N = 5;
+        INP_N = 10;
         KER_N = 3;
+        // FINAL_N = INP_N - KER_N + 1;
         FINAL_N = INP_N;
     }
     else if (argc ==2){
@@ -163,7 +188,8 @@ void fetchSize(int argc, char* argv[]){
         INP_N = atoi(argv[1]);
         KER_N = atoi(argv[2]);
         assert(INP_N - KER_N + 1  > 0);
-        SHRINK = (atoi(argv[3]) != 0) ;
+        assert(KER_N % 2 == 1);
+        bool SHRINK = (atoi(argv[3]) != 0) ;
         if (SHRINK){
             FINAL_N = INP_N;
         }
@@ -176,46 +202,13 @@ void fetchSize(int argc, char* argv[]){
     }
 }
 
-void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
-    
-}
-
-void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
-    
-}
-
-
-vector<data_type> softmax(vector<data_type> &inp){
-    vector<data_type> res;
-    data_type sum = 0;
-    for (int i=0; i<inp.size(); i++){
-        sum += exp(inp[i]);
-    }
-    for (int i=0; i<inp.size(); i++){
-        res.push_back(exp(inp[i]) / sum);
-    }
-    return res;
-}
-
-
-vector<data_type> sigmoid(vector<data_type> &inp){
-    vector<data_type> res;
-    for (int i=0; i<inp.size(); i++){
-        res.push_back(1 / (1 + exp(-inp[i])));
-    }
-    return res;
-}
-
-
-void applyNormalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation){
-    out = normalisation(inp);
-}
-
 int main(int argc, char* argv[]){
 
     fetchSize(argc, argv);
-    vector<vector<data_type> > input, kernel, output;
-    initialise(input, kernel, output);
+    vector<vector<data_type> > input, kernel, output, pool;
+    initialise(input, INP_N);
+    initialise(kernel, KER_N);
+    initialise(output, FINAL_N);
     for (int i=0; i<kernel.size(); i++){
         for (int j=0; j<kernel.size(); j++){
             kernel[i][j] = 1;
@@ -226,23 +219,23 @@ int main(int argc, char* argv[]){
     print_matrix(input);
     print_matrix(kernel);
 
-
-    // Do the computation
-
-    convolve(input, kernel, output);
+    if (FINAL_N == INP_N - KER_N + 1){
+        convolve(input, kernel, output);
+    }
+    else{
+        convolve_and_pad(input, kernel, output);
+    }
     print_matrix(output);
-    convolve_and_pad(input, kernel, output);
-    print_matrix(output);
 
-    // 
-
-
-    
     
 
     applyActivation(output, tanh_activation);
     print_matrix(output);
 
+    int pool_size = 2;
+    initialise(pool, FINAL_N / pool_size);
+    pool_max(output, pool_size, pool);
+    print_matrix(pool);
 
     return 0;
 }

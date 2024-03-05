@@ -6,6 +6,7 @@ using namespace std;
 // contains the serial functions
 
 int INP_N, KER_N, FINAL_N;
+bool SHRINK = true;
 
 //convolution of matrix
 // NEED MODIFY THIS FOR PADDING
@@ -28,12 +29,25 @@ void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &ker
             }
         }
     }
-    assert(output.size() == n - k + 1);
-    assert(output[0].size() == m - l + 1);
-    for (int i = 0; i < n - k + 1; i++){
-        for (int j = 0; j < m - l + 1; j++){
-            output[i][j] = temp[i + k - 1][j + l - 1];
+    if (SHRINK){
+        assert(output.size() == n - k + 1);
+        assert(output[0].size() == m - l + 1);
+        for (int i = 0; i < n - k + 1; i++){
+            for (int j = 0; j < m - l + 1; j++){
+                output[i][j] = temp[i + k - 1][j + l - 1];
+            }
         }
+    }
+    else {
+        int pad_size = (kernel.size() - 1) / 2;
+        assert(output.size() == n - 2*pad_size );
+        assert(output[0].size() == m - 2*pad_size );
+        for (int i = 0; i < n ; i++){
+            for (int j = 0; j < m ; j++){
+                output[i][j] = temp[i + pad_size][j + pad_size];
+            }
+        }
+
     }
 }
 
@@ -111,6 +125,7 @@ void initialise(vector<vector<data_type> > &input, vector<vector<data_type> > &k
     output.resize(FINAL_N, vector<data_type>(FINAL_N));
     init_matrix(input);
     init_matrix(kernel);
+    SHRINK = false;
 }
 
 
@@ -130,7 +145,7 @@ void fetchSize(int argc, char* argv[]){
     if (argc == 1){
         INP_N = 5;
         KER_N = 3;
-        FINAL_N = INP_N - KER_N + 1;
+        FINAL_N = INP_N;
     }
     else if (argc ==2){
         INP_N = atoi(argv[1]);
@@ -144,18 +159,18 @@ void fetchSize(int argc, char* argv[]){
         assert(INP_N - KER_N + 1  > 0);
         FINAL_N = INP_N - KER_N + 1;
     }
-    // else if (argc == 4){
-    //     INP_N = atoi(argv[1]);
-    //     KER_N = atoi(argv[2]);
-    //     assert(INP_N - KER_N + 1  > 0);
-    //     bool flag = atoi(argv[3]);
-    //     if (flag){
-    //         FINAL_N = INP_N;
-    //     }
-    //     else{
-    //         FINAL_N = INP_N - KER_N + 1;
-    //     }
-    // }
+    else if (argc == 4){
+        INP_N = atoi(argv[1]);
+        KER_N = atoi(argv[2]);
+        assert(INP_N - KER_N + 1  > 0);
+        SHRINK = (atoi(argv[3]) != 0) ;
+        if (SHRINK){
+            FINAL_N = INP_N;
+        }
+        else{
+            FINAL_N = INP_N - KER_N + 1;
+        }
+    }
     else{
         cout << "Invalid number of arguments" << endl;
     }

@@ -1,7 +1,11 @@
 part1: functions.cpp
-	g++ functions.cpp -o part1
-	./part1 > part1.txt
+	mkdir -p obj
+	g++ functions.cpp -o obj/part1
+	./obj/part1 > part1.txt
 
+lenet:
+	mkdir -p obj
+	g++ lenet.cpp -o obj/lenet
 
 clean:
-	-rm part1 part1.txt
+	-rm obj/part1 part1.txt

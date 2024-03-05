@@ -5,15 +5,9 @@
 using namespace std;
 
 typedef float data_type;
-
 typedef vector<vector<data_type>> matrix;
 
 const int IMG_DIMENSION = 28;
-const int CONVOLUTION_LAYERS = 2;
-const int POOLING_LAYERS = 2;
-
-vector<vector<data_type>> convolution_matrices[CONVOLUTION_LAYERS];
-vector<vector<data_type>> pooling_matrices[POOLING_LAYERS];
 
 void read_matrix_from_file(ifstream &fin, matrix &v, int dimension) {
 

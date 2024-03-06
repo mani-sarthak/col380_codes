@@ -28,14 +28,14 @@ void read_matrix_from_file(ifstream &fin, matrix &v, int dimension) {
 
 }
 
-void read_single_matrix(string filename, matrix &v, int rows, int columns) {
+void read_single_matrix(string filename, matrix &v, int dimension) {
 
-    v.resize(rows);
+    v.resize(dimension);
     ifstream fin(filename);
 
-    for (int i = 0; i < rows; i++) {
-        v[i].resize(columns);
-        for (int j = 0; j < columns; j++) {
+    for (int i = 0; i < dimension; i++) {
+        v[i].resize(dimension);
+        for (int j = 0; j < dimension; j++) {
             fin >> v[i][j];
         }
     }
@@ -94,7 +94,7 @@ int main (int argc, char *argv[]) {
         fc2_bias;
 
     string img_filename = "./img.txt";
-    read_single_matrix(img_filename, img_matrix, IMG_DIMENSION, IMG_DIMENSION);
+    read_single_matrix(img_filename, img_matrix, IMG_DIMENSION);
     // print_matrix(img_matrix);
 
     string conv1_filename = "./trained_weights/conv1.txt";
@@ -119,7 +119,7 @@ int main (int argc, char *argv[]) {
         }
     }
 
-    vector<matrix> layer2(LAYER_ONE_NODES, matrix(12, vector<data_type>(12)));
+    vector<matrix> layer2(LAYER_TWO_NODES, matrix(12, vector<data_type>(12)));
     for (int i = 0; i < LAYER_TWO_NODES; i++) {
         pool_max(layer1[i], 2, layer2[i]);
     }
@@ -130,9 +130,9 @@ int main (int argc, char *argv[]) {
         for (int j = 0; j < LAYER_TWO_NODES; j++) {
             matrix curr_output(8, vector<data_type>(8));
             convolve(layer2[j], conv2_matrix[i][j], curr_output, true);
-            for (int it = 0; it < 8; it++) {
-                for (int jt = 0; jt < 8; jt++) {
-                    output[it][jt] += curr_output[it][jt];
+            for (int x = 0; x < 8; x++) {
+                for (int y = 0; y < 8; y++) {
+                    output[x][y] += curr_output[x][y];
                 }
             }
         }
@@ -150,20 +150,20 @@ int main (int argc, char *argv[]) {
         for (int j = 0; j < LAYER_FOUR_NODES; j++) {
             matrix curr_output(1, vector<data_type>(1));
             convolve(layer4[j], fc1_matrix[i][j], curr_output, true);
-            output[0][0] += relu(curr_output[0][0]);
+            // applyActivation(curr_output, relu);
+            output[0][0] += curr_output[0][0];
         }
+        applyActivation(output, relu);
         layer5.push_back(output);
     }
 
-    vector<data_type> layer6;
+    vector<data_type> layer6 = fc2_bias;
     for (int i = 0; i < LAYER_SIX_NODES; i++) {
-        matrix output(1, vector<data_type>(1, fc2_bias[i]));
         for (int j = 0; j < LAYER_FIVE_NODES; j++) {
             matrix curr_output(1, vector<data_type>(1));
             convolve(layer5[j], fc2_matrix[i][j], curr_output, true);
-            output[0][0] += curr_output[0][0];
+            layer6[i] += curr_output[0][0];
         }
-        layer6.push_back(output[0][0]);
     }
 
     vector<data_type> final = softmax(layer6);

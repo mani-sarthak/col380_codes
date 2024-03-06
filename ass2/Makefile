@@ -5,7 +5,7 @@ part1: functions.cpp
 
 lenet:
 	mkdir -p obj
-	g++ lenet.cpp -o obj/lenet
+	g++ lenet.cpp functions.cpp -o obj/lenet
 
 clean:
 	-rm obj/part1 part1.txt

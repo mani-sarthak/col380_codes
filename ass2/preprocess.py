@@ -1,9 +1,10 @@
 import cv2
 import numpy as np
+import sys
 
 np.set_printoptions(linewidth=np.inf,formatter={'float': '{: 0.6f}'.format})
 
-img = cv2.imread('./test/000000-num7.png',0)
+img = cv2.imread(sys.argv[1],0)
 if img.shape != [28,28]:
     img2 = cv2.resize(img,(28,28))
     

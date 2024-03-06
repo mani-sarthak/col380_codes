@@ -1,14 +1,13 @@
-#include <bits/stdc++.h>
+#include <iostream>
+#include <cassert>
+#include <cmath>
+#include "functions.hpp"
+
 using namespace std;
-
-
-#define data_type float
 
 int INP_N, KER_N, FINAL_N;
 
-void print_matrix(vector<vector<data_type> > &mat);
-
-void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool SHRINK = true){
+void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool SHRINK){
     int n = input.size();
     int m = input[0].size();
     int k = kernel.size();
@@ -202,40 +201,40 @@ void fetchSize(int argc, char* argv[]){
     }
 }
 
-int main(int argc, char* argv[]){
-
-    fetchSize(argc, argv);
-    vector<vector<data_type> > input, kernel, output, pool;
-    initialise(input, INP_N);
-    initialise(kernel, KER_N);
-    initialise(output, FINAL_N);
-    for (int i=0; i<kernel.size(); i++){
-        for (int j=0; j<kernel.size(); j++){
-            kernel[i][j] = 1;
-        }
-    }
-
-
-    print_matrix(input);
-    print_matrix(kernel);
-
-    if (FINAL_N == INP_N - KER_N + 1){
-        convolve(input, kernel, output);
-    }
-    else{
-        convolve_and_pad(input, kernel, output);
-    }
-    print_matrix(output);
-
-    
-
-    applyActivation(output, tanh_activation);
-    print_matrix(output);
-
-    int pool_size = 2;
-    initialise(pool, FINAL_N / pool_size);
-    pool_max(output, pool_size, pool);
-    print_matrix(pool);
-
-    return 0;
-}
+// int main(int argc, char* argv[]){
+//
+//     fetchSize(argc, argv);
+//     vector<vector<data_type> > input, kernel, output, pool;
+//     initialise(input, INP_N);
+//     initialise(kernel, KER_N);
+//     initialise(output, FINAL_N);
+//     for (int i=0; i<kernel.size(); i++){
+//         for (int j=0; j<kernel.size(); j++){
+//             kernel[i][j] = 1;
+//         }
+//     }
+//
+//
+//     print_matrix(input);
+//     print_matrix(kernel);
+//
+//     if (FINAL_N == INP_N - KER_N + 1){
+//         convolve(input, kernel, output);
+//     }
+//     else{
+//         convolve_and_pad(input, kernel, output);
+//     }
+//     print_matrix(output);
+//
+//     
+//
+//     applyActivation(output, tanh_activation);
+//     print_matrix(output);
+//
+//     int pool_size = 2;
+//     initialise(pool, FINAL_N / pool_size);
+//     pool_max(output, pool_size, pool);
+//     print_matrix(pool);
+//
+//     return 0;
+// }

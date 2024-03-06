@@ -1,13 +1,19 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include "functions.hpp"
 
 using namespace std;
 
-typedef float data_type;
 typedef vector<vector<data_type>> matrix;
 
 const int IMG_DIMENSION = 28;
+const int LAYER_ONE_NODES = 20;
+const int LAYER_TWO_NODES = 20;
+const int LAYER_THREE_NODES = 50;
+const int LAYER_FOUR_NODES = 50;
+const int LAYER_FIVE_NODES = 500;
+const int LAYER_SIX_NODES = 10;
 
 void read_matrix_from_file(ifstream &fin, matrix &v, int dimension) {
 
@@ -63,12 +69,6 @@ void print_vector(vector<data_type> &v) {
     }
 }
 
-void print_matrix(matrix &v) {
-    for (int i = 0; i < v.size(); i++) {
-        print_vector(v[i]);
-    }
-}
-
 void print_multiple_matrices(vector<vector<matrix>> &v) {
     for (int i = 0; i < v.size(); i++) {
         for (int j = 0; j < v[i].size(); j++) {
@@ -109,7 +109,76 @@ int main (int argc, char *argv[]) {
     read_multiple_matrices(fc1_filename, fc1_matrix, fc1_bias, 500, 50, 4);
     read_multiple_matrices(fc2_filename, fc2_matrix, fc2_bias, 10, 500, 1);
 
+    vector<matrix> layer1(LAYER_ONE_NODES, matrix(24, vector<data_type>(24)));
+    for (int i = 0; i < LAYER_ONE_NODES; i++) {
+        convolve(img_matrix, conv1_matrix[i][0], layer1[i], true);
+        for (int j = 0; j < 24; j++) {
+            for (int k = 0; k < 24; k++) {
+                layer1[i][j][k] += conv1_bias[i];
+            }
+        }
+    }
 
+    vector<matrix> layer2(LAYER_ONE_NODES, matrix(12, vector<data_type>(12)));
+    for (int i = 0; i < LAYER_TWO_NODES; i++) {
+        pool_max(layer1[i], 2, layer2[i]);
+    }
+
+    vector<matrix> layer3;
+    for (int i = 0; i < LAYER_THREE_NODES; i++) {
+        matrix output(8, vector<data_type>(8, conv2_bias[i]));
+        for (int j = 0; j < LAYER_TWO_NODES; j++) {
+            matrix curr_output(8, vector<data_type>(8));
+            convolve(layer2[j], conv2_matrix[i][j], curr_output, true);
+            for (int it = 0; it < 8; it++) {
+                for (int jt = 0; jt < 8; jt++) {
+                    output[it][jt] += curr_output[it][jt];
+                }
+            }
+        }
+        layer3.push_back(output);
+    }
+
+    vector<matrix> layer4(LAYER_THREE_NODES, matrix(4, vector<data_type>(4)));
+    for (int i = 0; i < LAYER_FOUR_NODES; i++) {
+        pool_max(layer3[i], 2, layer4[i]);
+    }
+
+    vector<matrix> layer5;
+    for (int i = 0; i < LAYER_FIVE_NODES; i++) {
+        matrix output(1, vector<data_type>(1, fc1_bias[i]));
+        for (int j = 0; j < LAYER_FOUR_NODES; j++) {
+            matrix curr_output(1, vector<data_type>(1));
+            convolve(layer4[j], fc1_matrix[i][j], curr_output, true);
+            output[0][0] += relu(curr_output[0][0]);
+        }
+        layer5.push_back(output);
+    }
+
+    vector<data_type> layer6;
+    for (int i = 0; i < LAYER_SIX_NODES; i++) {
+        matrix output(1, vector<data_type>(1, fc2_bias[i]));
+        for (int j = 0; j < LAYER_FIVE_NODES; j++) {
+            matrix curr_output(1, vector<data_type>(1));
+            convolve(layer5[j], fc2_matrix[i][j], curr_output, true);
+            output[0][0] += curr_output[0][0];
+        }
+        layer6.push_back(output[0][0]);
+    }
+
+    vector<data_type> final = softmax(layer6);
+
+    vector<pair<data_type, int>> predictions(final.size());
+
+    for (int i = 0; i < final.size(); i++) {
+        predictions[i] = { 100.0 * final[i], i };
+    }
+
+    sort(predictions.rbegin(), predictions.rend());
+
+    for (int i = 0; i < 5; i++) {
+        cout << predictions[i].first << " class " << predictions[i].second << '\n';
+    }
 
     return 0;
 

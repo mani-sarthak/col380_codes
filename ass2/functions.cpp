@@ -7,14 +7,14 @@ using namespace std;
 
 int INP_N, KER_N, FINAL_N;
 
-void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool SHRINK){
+void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
     int n = input.size();
     int m = input[0].size();
     int k = kernel.size();
     int l = kernel[0].size();
     int o_n = n + k - 1;
     int o_m = m + l - 1;
-    vector<vector<data_type> > temp(o_n, vector<data_type>(o_m));
+    matrix temp(o_n, vector<data_type>(o_m));
     for (int x = 0; x < o_n; x++){
         for (int y = 0; y < o_m; y++){
             temp[x][y] = 0;
@@ -47,7 +47,7 @@ void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &ker
     }
 }
 
-void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
+void convolve_and_pad(matrix &input, matrix &kernel, matrix &output){
     convolve(input, kernel, output, false);
 }
 
@@ -59,7 +59,7 @@ data_type tanh_activation(data_type inp){
     return tanh(inp);
 }
 
-void applyActivation(vector<vector<data_type> > &mat, function<data_type(data_type)> activation){
+void applyActivation(matrix &mat, function<data_type(data_type)> activation){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -72,7 +72,7 @@ void changeMatrixEntry(data_type &inp){
 
 }
 
-void init_matrix(vector<vector<data_type> > &mat){
+void init_matrix(matrix &mat){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -83,13 +83,13 @@ void init_matrix(vector<vector<data_type> > &mat){
 }
 
 
-void initialise(vector<vector<data_type> > &input, int n){
+void initialise(matrix &input, int n){
     input.resize(n, vector<data_type>(n));
     init_matrix(input);
 }
 
 
-void print_matrix(vector<vector<data_type> > &mat){
+void print_matrix(matrix &mat){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -100,7 +100,7 @@ void print_matrix(vector<vector<data_type> > &mat){
     cout << endl;
 }
 
-void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+void pool_max(matrix &input, int pool_size, matrix &output){
     int n = input.size();
     int m = input[0].size();
     int o_n = n / pool_size;
@@ -120,7 +120,7 @@ void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<da
     }
 }
 
-void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+void pool_avg(matrix &input, int pool_size, matrix &output){
     int n = input.size();
     int m = input[0].size();
     int o_n = n / pool_size;
@@ -204,7 +204,7 @@ void fetchSize(int argc, char* argv[]){
 // int main(int argc, char* argv[]){
 //
 //     fetchSize(argc, argv);
-//     vector<vector<data_type> > input, kernel, output, pool;
+//     matrix input, kernel, output, pool;
 //     initialise(input, INP_N);
 //     initialise(kernel, KER_N);
 //     initialise(output, FINAL_N);

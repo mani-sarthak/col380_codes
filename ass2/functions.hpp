@@ -4,28 +4,29 @@
 using namespace std;
 
 typedef float data_type;
+typedef vector<vector<data_type>> matrix;
 
-void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool SHRINK = true);
+void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK = true);
 
-void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output);
+void convolve_and_pad(matrix &input, matrix &kernel, matrix &output);
 
 data_type relu(data_type inp);
 
 data_type tanh_activation(data_type inp);
 
-void applyActivation(vector<vector<data_type> > &mat, function<data_type(data_type)> activation);
+void applyActivation(matrix &mat, function<data_type(data_type)> activation);
 
 void changeMatrixEntry(data_type &inp);
 
-void init_matrix(vector<vector<data_type> > &mat);
+void init_matrix(matrix &mat);
 
-void initialise(vector<vector<data_type> > &input, int n);
+void initialise(matrix &input, int n);
 
-void print_matrix(vector<vector<data_type> > &mat);
+void print_matrix(matrix &mat);
 
-void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output);
+void pool_max(matrix &input, int pool_size, matrix &output);
 
-void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output);
+void pool_avg(matrix &input, int pool_size, matrix &output);
 
 vector<data_type> softmax(vector<data_type> &inp);
 

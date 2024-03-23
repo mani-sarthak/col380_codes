@@ -10,22 +10,41 @@ int INP_N, KER_N, FINAL_N;
 void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
     int n = input.size();
     int m = input[0].size();
-    int p = kernel.size();
-    int q = kernel[0].size();
-    assert(output.size() == n - p + 1);
-    assert(output[0].size() == m - q + 1);
-    for (int i = 0; i < m - p; i++){
-        for (int j = 0; j < n - q; j++){
-            data_type sum = 0;
-            for (int x = 0; x < p; x++){
-                for (int y = 0; y < q; y++){
-                    sum += (input[i + x][j + y] * kernel[x][y]);
+    int k = kernel.size();
+    int l = kernel[0].size();
+    int o_n = n + k - 1;
+    int o_m = m + l - 1;
+    vector<vector<data_type> > temp(o_n, vector<data_type>(o_m));
+    for (int x = 0; x < o_n; x++){
+        for (int y = 0; y < o_m; y++){
+            temp[x][y] = 0;
+            for (int u=0; u<=x; u++){
+                for (int v=0; v <= y; v++){
+                    if (u < n && v < m && x-u < k && y-v < l) 
+                    temp[x][y] += (input[u][v] * kernel[x-u][y-v]);
                 }
             }
-            output[i][j] = sum;
         }
     }
-    return;
+    if (true){
+        assert(output.size() == n - k + 1);
+        assert(output[0].size() == m - l + 1);
+        for (int i = 0; i < n - k + 1; i++){
+            for (int j = 0; j < m - l + 1; j++){
+                output[i][j] = temp[i + k - 1][j + l - 1];
+            }
+        }
+    }
+    else {
+        int pad_size = (kernel.size() - 1) / 2;
+        assert(output.size() == o_n - 2*pad_size );
+        assert(output[0].size() == o_m - 2*pad_size );
+        for (int i = 0; i < n ; i++){
+            for (int j = 0; j < m ; j++){
+                output[i][j] = temp[i + pad_size][j + pad_size];
+            }
+        }
+    }
 }
 
 void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){

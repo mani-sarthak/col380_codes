@@ -5,7 +5,8 @@ part1: functions.cpp
 
 lenet:
 	mkdir -p obj
-	g++ -O2 lenet.cpp functions.cpp -o obj/lenet
+	g++ lenet.cpp functions.cpp -o obj/lenet
+	./obj/lenet > output.txt
 
 img: lenet
 	# python3 ./preprocess.py ./samples/2.png > ./img_matrix/sample_img_num2.txt

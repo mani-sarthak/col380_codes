@@ -7,6 +7,7 @@ using namespace std;
 
 int INP_N, KER_N, FINAL_N;
 
+
 void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
     int n = input.size();
     int m = input[0].size();
@@ -24,31 +25,15 @@ void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
                     temp[x][y] += (input[u][v] * kernel[x-u][y-v]);
                 }
             }
+            output[i][j] = sum;
         }
     }
-    if (SHRINK){
-        assert(output.size() == n - k + 1);
-        assert(output[0].size() == m - l + 1);
-        for (int i = 0; i < n - k + 1; i++){
-            for (int j = 0; j < m - l + 1; j++){
-                output[i][j] = temp[i + k - 1][j + l - 1];
-            }
-        }
-    }
-    else {
-        int pad_size = (kernel.size() - 1) / 2;
-        assert(output.size() == o_n - 2*pad_size );
-        assert(output[0].size() == o_m - 2*pad_size );
-        for (int i = 0; i < n ; i++){
-            for (int j = 0; j < m ; j++){
-                output[i][j] = temp[i + pad_size][j + pad_size];
-            }
-        }
-    }
+    return;
 }
 
-void convolve_and_pad(matrix &input, matrix &kernel, matrix &output){
-    convolve(input, kernel, output, false);
+void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
+    convolve(input, kernel, output);
+
 }
 
 data_type relu(data_type inp){
@@ -100,13 +85,14 @@ void print_matrix(matrix &mat){
     cout << endl;
 }
 
-void pool_max(matrix &input, int pool_size, matrix &output){
+
+void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+
     int n = input.size();
     int m = input[0].size();
     int o_n = n / pool_size;
     int o_m = m / pool_size;
-    assert(output.size() == o_n);
-    assert(output[0].size() == o_m);
+    output.resize(o_n, vector<data_type>(o_m));
     for (int i = 0; i < o_n; i++){
         for (int j = 0; j < o_m; j++){
             data_type max_val = -1e9;
@@ -142,7 +128,7 @@ void pool_avg(matrix &input, int pool_size, matrix &output){
 
 vector<data_type> softmax(vector<data_type> &inp){
     vector<data_type> res;
-    data_type sum = 0;
+    data_type sum = 1e-9;
     for (int i=0; i<inp.size(); i++){
         sum += exp(inp[i]);
     }
@@ -164,77 +150,31 @@ void applyNormalisation(vector<data_type> &inp, vector<data_type> &out, function
     out = normalisation(inp);
 }
 
-void fetchSize(int argc, char* argv[]){
-    if (argc == 1){
-        INP_N = 10;
-        KER_N = 3;
-        // FINAL_N = INP_N - KER_N + 1;
-        FINAL_N = INP_N;
-    }
-    else if (argc ==2){
-        INP_N = atoi(argv[1]);
-        KER_N = 3;
-        assert(INP_N - KER_N + 1  > 0);
-        FINAL_N = INP_N - KER_N + 1;
-    }
-    else if (argc == 3){
-        INP_N = atoi(argv[1]);
-        KER_N = atoi(argv[2]);
-        assert(INP_N - KER_N + 1  > 0);
-        FINAL_N = INP_N - KER_N + 1;
-    }
-    else if (argc == 4){
-        INP_N = atoi(argv[1]);
-        KER_N = atoi(argv[2]);
-        assert(INP_N - KER_N + 1  > 0);
-        assert(KER_N % 2 == 1);
-        bool SHRINK = (atoi(argv[3]) != 0) ;
-        if (SHRINK){
-            FINAL_N = INP_N;
-        }
-        else{
-            FINAL_N = INP_N - KER_N + 1;
+// read ((matDim x matDim) * dim1 ) * dim2 matrices from file
+// eg. ((5 * 5) x 20 ) x 50; v.size() = 50, v[0].size() = 20
+// also have biases of dim2 size
+// readFile("./trained_weights/conv2.txt", v, bias, 5, 20, 50);
+void readFile(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2) {
+    ifstream fin(filename);
+    v.resize(dim2);
+    for (int i = 0; i < dim2; i++) {
+        v[i].resize(dim1);
+        for (int j = 0; j < dim1; j++) {
+            v[i][j].resize(matDim);
+            for (int k = 0; k < matDim; k++) {
+                v[i][j][k].resize(matDim);
+                for (int l = 0; l < matDim; l++) {
+                    fin >> v[i][j][k][l];
+                }
+            }
         }
     }
-    else{
-        cout << "Invalid number of arguments" << endl;
+    bias.resize(dim2);
+    for (int i = 0; i < dim2; i++) {
+        fin >> bias[i];
     }
+    string temp;
+    fin >> temp;
+    assert(temp == "");
 }
 
-// int main(int argc, char* argv[]){
-//
-//     fetchSize(argc, argv);
-//     matrix input, kernel, output, pool;
-//     initialise(input, INP_N);
-//     initialise(kernel, KER_N);
-//     initialise(output, FINAL_N);
-//     for (int i=0; i<kernel.size(); i++){
-//         for (int j=0; j<kernel.size(); j++){
-//             kernel[i][j] = 1;
-//         }
-//     }
-//
-//
-//     print_matrix(input);
-//     print_matrix(kernel);
-//
-//     if (FINAL_N == INP_N - KER_N + 1){
-//         convolve(input, kernel, output);
-//     }
-//     else{
-//         convolve_and_pad(input, kernel, output);
-//     }
-//     print_matrix(output);
-//
-//     
-//
-//     applyActivation(output, tanh_activation);
-//     print_matrix(output);
-//
-//     int pool_size = 2;
-//     initialise(pool, FINAL_N / pool_size);
-//     pool_max(output, pool_size, pool);
-//     print_matrix(pool);
-//
-//     return 0;
-// }

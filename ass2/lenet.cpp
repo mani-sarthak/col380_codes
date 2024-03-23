@@ -5,31 +5,8 @@
 
 using namespace std;
 
-typedef vector<vector<data_type>> matrix;
-
-const int IMG_DIMENSION = 28;
-const int LAYER_ONE_NODES = 20;
-const int LAYER_TWO_NODES = 20;
-const int LAYER_THREE_NODES = 50;
-const int LAYER_FOUR_NODES = 50;
-const int LAYER_FIVE_NODES = 500;
-const int LAYER_SIX_NODES = 10;
-
-void read_matrix_from_file(ifstream &fin, matrix &v, int dimension) {
-
-    v.resize(dimension);
-
-    for (int i = 0; i < dimension; i++) {
-        v[i].resize(dimension);
-        for (int j = 0; j < dimension; j++) {
-            fin >> v[i][j];
-        }
-    }
-
-}
 
 void read_single_matrix(string filename, matrix &v, int dimension) {
-
     v.resize(dimension);
     ifstream fin(filename);
 
@@ -39,49 +16,67 @@ void read_single_matrix(string filename, matrix &v, int dimension) {
             fin >> v[i][j];
         }
     }
-
 }
 
-void read_multiple_matrices(string filename, vector<vector<matrix>> &v,
-                            vector<data_type> &biases, int output_count,
-                            int input_count, int dimension) {
 
-    int bias_count = output_count;
-    v.resize(output_count);
-    biases.resize(bias_count);
-    ifstream fin(filename);
-
-    for (int i = 0; i < output_count; i++) {
-        v[i].resize(input_count);
-        for (int j = 0; j < input_count; j++) {
-            read_matrix_from_file(fin, v[i][j], dimension);
-        }
-    }
-
-    for (int i = 0; i < bias_count; i++) {
-        fin >> biases[i];
-    }
-}
-
-void print_vector(vector<data_type> &v) {
-    for (int it = 0; it < v.size(); it++) {
-        cout << v[it] << " \n"[it == v.size()-1];
-    }
-}
-
-void print_multiple_matrices(vector<vector<matrix>> &v) {
-    for (int i = 0; i < v.size(); i++) {
-        for (int j = 0; j < v[i].size(); j++) {
-            print_matrix(v[i][j]);
+void sumMatrix(matrix &input1, matrix &input2, matrix &output){
+    int n = input1.size();
+    int m = input1[0].size();
+    assert(n == input2.size());
+    assert(m == input2[0].size());
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++){
+            output[i][j] = input1[i][j] + input2[i][j];
         }
     }
 }
 
+void convolve3D(vector<matrix> &input1, vector<matrix> &input2, int bias, matrix &output){
+    int k1 = input1.size();
+    assert(k1 == input2.size());
+    int n1 = input1[0].size();
+    int m1 = input1[0][0].size();
+    int n2 = input2[0].size();
+    int m2 = input2[0][0].size();
+    output.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1));
+    for (int ind = 0; ind < k1; ind++){
+        matrix temp;
+        temp.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1));
+        convolve(input1[ind], input2[ind], temp);
+        sumMatrix(output, temp, output);
+    }
+    matrix bias_matrix(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1, bias));
+    sumMatrix(output, bias_matrix, output);
+}
 
-int main (int argc, char *argv[]) {
 
-    matrix img_matrix;
-    vector<vector<matrix>>
+void convolveKernels(vector<matrix> &input, vector<vector<matrix> >&kernal, vector<data_type> &bias, vector<matrix> &output){
+    int n = input[0].size();
+    int k1 = input.size(); 
+    int k2 = kernal.size();
+    assert(k1 == kernal[0].size());
+    assert(k2 == bias.size());
+    assert(input[0][0].size() == n);
+    output.resize(k2);
+    for (int i = 0; i < k2; i++){
+        convolve3D(input, kernal[i], bias[i], output[i]);
+    }
+    assert(output.size() == k2);
+}
+
+
+void pool3D(vector<matrix> &input, int pool_size, vector<matrix> &output){
+    int n = input.size();
+    output.resize(n);
+    for (int i = 0; i < n; i++){
+        pool_max(input[i], pool_size, output[i]);
+    }
+}
+
+
+void predict(string image_name){
+    matrix img_matrix2D;  
+    vector<vector<matrix> >
         conv1_matrix,
         conv2_matrix,
         fc1_matrix,
@@ -92,86 +87,61 @@ int main (int argc, char *argv[]) {
         conv2_bias,
         fc1_bias,
         fc2_bias;
+    
+    vector<matrix> img_matrix3D(1);
 
-    string img_filename = "./img.txt";
-    read_single_matrix(img_filename, img_matrix, IMG_DIMENSION);
-    // print_matrix(img_matrix);
+    read_single_matrix(image_name, img_matrix2D, 28);
+    img_matrix3D[0] = img_matrix2D;
 
     string conv1_filename = "./trained_weights/conv1.txt";
     string conv2_filename = "./trained_weights/conv2.txt";
 
-    read_multiple_matrices(conv1_filename, conv1_matrix, conv1_bias, 20, 1, 5);
-    read_multiple_matrices(conv2_filename, conv2_matrix, conv2_bias, 50, 20, 5);
+    readFile(conv1_filename, conv1_matrix, conv1_bias, 5, 1, 20);
+    readFile(conv2_filename, conv2_matrix, conv2_bias, 5, 20, 50);
 
     string fc1_filename = "./trained_weights/fc1.txt";
     string fc2_filename = "./trained_weights/fc2.txt";
 
-    read_multiple_matrices(fc1_filename, fc1_matrix, fc1_bias, 500, 50, 4);
-    read_multiple_matrices(fc2_filename, fc2_matrix, fc2_bias, 10, 500, 1);
+    readFile(fc1_filename, fc1_matrix, fc1_bias, 4, 50, 500);
+    readFile(fc2_filename, fc2_matrix, fc2_bias, 1, 500, 10);
 
-    vector<matrix> layer1(LAYER_ONE_NODES, matrix(24, vector<data_type>(24)));
-    for (int i = 0; i < LAYER_ONE_NODES; i++) {
-        convolve(img_matrix, conv1_matrix[i][0], layer1[i], true);
-        for (int j = 0; j < 24; j++) {
-            for (int k = 0; k < 24; k++) {
-                layer1[i][j][k] += conv1_bias[i];
-            }
-        }
+
+    vector<matrix> conv1_output, conv2_output, pool1_output, pool2_output;
+    vector<matrix> fc1_output, fc2_output;
+
+    // cout << "Conv1 Matrix: " << conv1_matrix.size() << " " << conv1_matrix[0].size() << " " << conv1_matrix[0][0].size() << " " << conv1_matrix[0][0][0].size() << endl;
+    // cout << "Conv2 Matrix: " << conv2_matrix.size() << " " << conv2_matrix[0].size() << " " << conv2_matrix[0][0].size() << " " << conv2_matrix[0][0][0].size() << endl;
+    // cout << "FC1 Matrix: " << fc1_matrix.size() << " " << fc1_matrix[0].size() << " " << fc1_matrix[0][0].size() << " " << fc1_matrix[0][0][0].size() << endl;
+    // cout << "FC2 Matrix: " << fc2_matrix.size() << " " << fc2_matrix[0].size() << " " << fc2_matrix[0][0].size() << " " << fc2_matrix[0][0][0].size() << endl;
+    // cout << "Conv1 Bias: " << conv1_bias.size() << endl;
+    // cout << "Conv2 Bias: " << conv2_bias.size() << endl;
+    // cout << "FC1 Bias: " << fc1_bias.size() << endl;
+    // cout << "FC2 Bias: " << fc2_bias.size() << endl;
+
+    convolveKernels(img_matrix3D, conv1_matrix, conv1_bias, conv1_output);
+    pool3D(conv1_output, 2, pool1_output);
+    // cout << "Pool1 Output: " << pool1_output.size() << " " << pool1_output[0].size() << " " << pool1_output[0][0].size() << endl;
+    
+    convolveKernels(pool1_output, conv2_matrix, conv2_bias, conv2_output);
+    pool3D(conv2_output, 2, pool2_output);
+    // cout << "Pool2 Output: " << pool2_output.size() << " " << pool2_output[0].size() << " " << pool2_output[0][0].size() << endl;
+
+    convolveKernels(pool2_output, fc1_matrix, fc1_bias, fc1_output);
+    // cout << "FC1 Output: " << fc1_output.size() << " " << fc1_output[0].size() << " " << fc1_output[0][0].size() << endl;
+    
+    convolveKernels(fc1_output, fc2_matrix, fc2_bias, fc2_output);
+    // cout << "FC2 Output: " << fc2_output.size() << " " << fc2_output[0].size() << " " << fc2_output[0][0].size() << endl;
+
+    vector<data_type> output;
+    for (int i = 0; i < fc2_output.size(); i++){
+        output.push_back(fc2_output[i][0][0]);
     }
 
-    vector<matrix> layer2(LAYER_TWO_NODES, matrix(12, vector<data_type>(12)));
-    for (int i = 0; i < LAYER_TWO_NODES; i++) {
-        pool_max(layer1[i], 2, layer2[i]);
-    }
+    vector<data_type> probability = softmax(output);
 
-    vector<matrix> layer3;
-    for (int i = 0; i < LAYER_THREE_NODES; i++) {
-        matrix output(8, vector<data_type>(8, conv2_bias[i]));
-        for (int j = 0; j < LAYER_TWO_NODES; j++) {
-            matrix curr_output(8, vector<data_type>(8));
-            convolve(layer2[j], conv2_matrix[i][j], curr_output, true);
-            for (int x = 0; x < 8; x++) {
-                for (int y = 0; y < 8; y++) {
-                    output[x][y] += curr_output[x][y];
-                }
-            }
-        }
-        layer3.push_back(output);
-    }
-
-    vector<matrix> layer4(LAYER_THREE_NODES, matrix(4, vector<data_type>(4)));
-    for (int i = 0; i < LAYER_FOUR_NODES; i++) {
-        pool_max(layer3[i], 2, layer4[i]);
-    }
-
-    vector<matrix> layer5;
-    for (int i = 0; i < LAYER_FIVE_NODES; i++) {
-        matrix output(1, vector<data_type>(1, fc1_bias[i]));
-        for (int j = 0; j < LAYER_FOUR_NODES; j++) {
-            matrix curr_output(1, vector<data_type>(1));
-            convolve(layer4[j], fc1_matrix[i][j], curr_output, true);
-            // applyActivation(curr_output, relu);
-            output[0][0] += curr_output[0][0];
-        }
-        applyActivation(output, relu);
-        layer5.push_back(output);
-    }
-
-    vector<data_type> layer6 = fc2_bias;
-    for (int i = 0; i < LAYER_SIX_NODES; i++) {
-        for (int j = 0; j < LAYER_FIVE_NODES; j++) {
-            matrix curr_output(1, vector<data_type>(1));
-            convolve(layer5[j], fc2_matrix[i][j], curr_output, true);
-            layer6[i] += curr_output[0][0];
-        }
-    }
-
-    vector<data_type> final = softmax(layer6);
-
-    vector<pair<data_type, int>> predictions(final.size());
-
-    for (int i = 0; i < final.size(); i++) {
-        predictions[i] = { 100.0 * final[i], i };
+    vector<pair<data_type, int> > predictions(probability.size());
+    for (int i = 0; i < predictions.size(); i++) {
+        predictions[i] = make_pair(100.0 * probability[i], i);
     }
 
     sort(predictions.rbegin(), predictions.rend());
@@ -180,6 +150,14 @@ int main (int argc, char *argv[]) {
         cout << predictions[i].first << " class " << predictions[i].second << '\n';
     }
 
-    return 0;
+    return ;
+}
 
+
+
+
+int main (int argc, char *argv[]) {
+    string filename = "./img.txt";
+    predict(filename);
+    return 0;
 }

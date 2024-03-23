@@ -1,11 +1,11 @@
-#include <functional>
-#include <vector>
-
+#include <bits/stdc++.h>
 using namespace std;
 
-typedef float data_type;
+#define data_type double
+#define matrix vector<vector<data_type> >
 
-void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool SHRINK = true);
+
+void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output);
 
 void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output);
 
@@ -23,6 +23,8 @@ void initialise(vector<vector<data_type> > &input, int n);
 
 void print_matrix(vector<vector<data_type> > &mat);
 
+void print_vector(vector<data_type> &v);
+
 void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output);
 
 void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output);
@@ -33,4 +35,4 @@ vector<data_type> sigmoid(vector<data_type> &inp);
 
 void applyNormalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation);
 
-void fetchSize(int argc, char* argv[]);
+void readFile(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2);

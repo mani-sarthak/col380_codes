@@ -13,11 +13,5 @@ img:
 	make lenet
 	./obj/lenet
 
-ch: check.cpp
-	mkdir -p obj
-	g++ check.cpp -o obj/check
-	./obj/check > output.txt
-
-
 clean:
 	-rm obj/part1 part1.txt

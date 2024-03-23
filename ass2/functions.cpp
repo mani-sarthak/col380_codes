@@ -15,7 +15,7 @@ void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
     int l = kernel[0].size();
     int o_n = n + k - 1;
     int o_m = m + l - 1;
-    matrix temp(o_n, vector<data_type>(o_m));
+    vector<vector<data_type> > temp(o_n, vector<data_type>(o_m));
     for (int x = 0; x < o_n; x++){
         for (int y = 0; y < o_m; y++){
             temp[x][y] = 0;
@@ -25,10 +25,27 @@ void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
                     temp[x][y] += (input[u][v] * kernel[x-u][y-v]);
                 }
             }
-            output[i][j] = sum;
         }
     }
-    return;
+    if (true){
+        assert(output.size() == n - k + 1);
+        assert(output[0].size() == m - l + 1);
+        for (int i = 0; i < n - k + 1; i++){
+            for (int j = 0; j < m - l + 1; j++){
+                output[i][j] = temp[i + k - 1][j + l - 1];
+            }
+        }
+    }
+    else {
+        int pad_size = (kernel.size() - 1) / 2;
+        assert(output.size() == o_n - 2*pad_size );
+        assert(output[0].size() == o_m - 2*pad_size );
+        for (int i = 0; i < n ; i++){
+            for (int j = 0; j < m ; j++){
+                output[i][j] = temp[i + pad_size][j + pad_size];
+            }
+        }
+    }
 }
 
 void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){

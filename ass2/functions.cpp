@@ -7,19 +7,22 @@ using namespace std;
 
 int INP_N, KER_N, FINAL_N;
 
-void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
+
+void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
     int n = input.size();
     int m = input[0].size();
-    int p = kernel.size();
-    int q = kernel[0].size();
-    assert(output.size() == n - p + 1);
-    assert(output[0].size() == m - q + 1);
-    for (int i = 0; i < m - p; i++){
-        for (int j = 0; j < n - q; j++){
-            data_type sum = 0;
-            for (int x = 0; x < p; x++){
-                for (int y = 0; y < q; y++){
-                    sum += (input[i + x][j + y] * kernel[x][y]);
+    int k = kernel.size();
+    int l = kernel[0].size();
+    int o_n = n + k - 1;
+    int o_m = m + l - 1;
+    matrix temp(o_n, vector<data_type>(o_m));
+    for (int x = 0; x < o_n; x++){
+        for (int y = 0; y < o_m; y++){
+            temp[x][y] = 0;
+            for (int u=0; u<=x; u++){
+                for (int v=0; v <= y; v++){
+                    if (u < n && v < m && x-u < k && y-v < l) 
+                    temp[x][y] += (input[u][v] * kernel[x-u][y-v]);
                 }
             }
             output[i][j] = sum;
@@ -30,6 +33,7 @@ void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &ker
 
 void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
     convolve(input, kernel, output);
+
 }
 
 data_type relu(data_type inp){
@@ -40,7 +44,7 @@ data_type tanh_activation(data_type inp){
     return tanh(inp);
 }
 
-void applyActivation(vector<vector<data_type> > &mat, function<data_type(data_type)> activation){
+void applyActivation(matrix &mat, function<data_type(data_type)> activation){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -53,7 +57,7 @@ void changeMatrixEntry(data_type &inp){
 
 }
 
-void init_matrix(vector<vector<data_type> > &mat){
+void init_matrix(matrix &mat){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -64,13 +68,13 @@ void init_matrix(vector<vector<data_type> > &mat){
 }
 
 
-void initialise(vector<vector<data_type> > &input, int n){
+void initialise(matrix &input, int n){
     input.resize(n, vector<data_type>(n));
     init_matrix(input);
 }
 
 
-void print_matrix(vector<vector<data_type> > &mat){
+void print_matrix(matrix &mat){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -82,14 +86,8 @@ void print_matrix(vector<vector<data_type> > &mat){
 }
 
 
-void print_vector(vector<data_type> &v){
-    for (int i = 0; i < v.size(); i++){
-        cout << v[i] << " ";
-    }
-    cout << endl;
-}
-
 void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+
     int n = input.size();
     int m = input[0].size();
     int o_n = n / pool_size;
@@ -108,7 +106,7 @@ void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<da
     }
 }
 
-void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+void pool_avg(matrix &input, int pool_size, matrix &output){
     int n = input.size();
     int m = input[0].size();
     int o_n = n / pool_size;
@@ -179,3 +177,4 @@ void readFile(string filename, vector<vector<matrix> > &v, vector<data_type> &bi
     fin >> temp;
     assert(temp == "");
 }
+

@@ -8,10 +8,14 @@ using namespace std;
 
 void read_single_matrix(string filename, matrix &v, int dimension) {
     v.resize(dimension);
+
     ifstream fin(filename);
 
+    if (!fin) {
+        return -1;
+    }
+
     for (int i = 0; i < dimension; i++) {
-        v[i].resize(dimension);
         for (int j = 0; j < dimension; j++) {
             fin >> v[i][j];
         }
@@ -73,7 +77,6 @@ void pool3D(vector<matrix> &input, int pool_size, vector<matrix> &output){
     }
 }
 
-
 void predict(string image_name){
     matrix img_matrix2D;  
     vector<vector<matrix> >
@@ -99,8 +102,11 @@ void predict(string image_name){
     readFile(conv1_filename, conv1_matrix, conv1_bias, 5, 1, 20);
     readFile(conv2_filename, conv2_matrix, conv2_bias, 5, 20, 50);
 
-    string fc1_filename = "./trained_weights/fc1.txt";
-    string fc2_filename = "./trained_weights/fc2.txt";
+
+    if (read_single_matrix(img_filename, img_matrix, IMG_DIMENSION)) {
+        cerr << "Error opening file " << img_filename << endl;
+        return;
+    }
 
     readFile(fc1_filename, fc1_matrix, fc1_bias, 4, 50, 500);
     readFile(fc2_filename, fc2_matrix, fc2_bias, 1, 500, 10);
@@ -152,6 +158,7 @@ void predict(string image_name){
 
     return ;
 }
+
 
 
 

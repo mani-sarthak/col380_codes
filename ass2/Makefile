@@ -6,11 +6,9 @@ part1: functions.cpp
 lenet:
 	mkdir -p obj
 	g++ lenet.cpp functions.cpp -o obj/lenet
-	./obj/lenet > output.txt
 
-img: lenet
-	# python3 ./preprocess.py ./samples/2.png > ./img_matrix/sample_img_num2.txt
-	./obj/lenet ./img_matrix/sample_img_num2.txt
+img:
+	python3 ./preprocess.py ./test/000000-num7.png > ./img_matrix/sample_num7.txt
 
 clean:
 	-rm obj/part1 part1.txt

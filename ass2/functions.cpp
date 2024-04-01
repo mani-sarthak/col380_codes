@@ -1,56 +1,53 @@
 #include <iostream>
+#include <fstream>
 #include <cassert>
 #include <cmath>
 #include "functions.hpp"
 
 using namespace std;
 
-int INP_N, KER_N, FINAL_N;
-
-
-void convolve(matrix &input, matrix &kernel, matrix &output, bool SHRINK){
+void convolve(matrix &input, matrix &kernel, matrix &output, bool pad) {
     int n = input.size();
     int m = input[0].size();
     int k = kernel.size();
     int l = kernel[0].size();
-    int o_n = n + k - 1;
-    int o_m = m + l - 1;
-    vector<vector<data_type> > temp(o_n, vector<data_type>(o_m));
-    for (int x = 0; x < o_n; x++){
-        for (int y = 0; y < o_m; y++){
-            temp[x][y] = 0;
-            for (int u=0; u<=x; u++){
-                for (int v=0; v <= y; v++){
-                    if (u < n && v < m && x-u < k && y-v < l) 
-                    temp[x][y] += (input[u][v] * kernel[x-u][y-v]);
+    int o_n = n - k + 1;
+    int o_m = m - l + 1;
+
+    matrix input_padded = input;
+    if (pad) {
+        int p = (k - 1) / 2;
+        input_padded.resize(n + 2 * p, vector<data_type>(n + 2 * p, 0));
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                input_padded[i + p][j + p] = input[i][j];
+            }
+        }
+        o_n = n;
+        o_m = m;
+        n += 2 * p;
+    }
+
+    output.assign(o_n, vector<data_type>(o_n, 0));
+
+    for (int i = 0; i <= n - k; ++i) {
+        for (int j = 0; j <= m - l; ++j) {
+            for (int x = 0; x < k; ++x) {
+                for (int y = 0; y < l; ++y) {
+                    output[i][j] += input_padded[i + x][j + y] * kernel[x][y];
                 }
             }
         }
     }
-    if (true){
-        assert(output.size() == n - k + 1);
-        assert(output[0].size() == m - l + 1);
-        for (int i = 0; i < n - k + 1; i++){
-            for (int j = 0; j < m - l + 1; j++){
-                output[i][j] = temp[i + k - 1][j + l - 1];
-            }
-        }
-    }
-    else {
-        int pad_size = (kernel.size() - 1) / 2;
-        assert(output.size() == o_n - 2*pad_size );
-        assert(output[0].size() == o_m - 2*pad_size );
-        for (int i = 0; i < n ; i++){
-            for (int j = 0; j < m ; j++){
-                output[i][j] = temp[i + pad_size][j + pad_size];
-            }
-        }
-    }
+
 }
 
-void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output){
-    convolve(input, kernel, output);
+void convolve(matrix &input, matrix &kernel, matrix &output){
+    convolve(input, kernel, output, false);
+}
 
+void convolve_and_pad(matrix &input, matrix &kernel, matrix &output){
+    convolve(input, kernel, output, true);
 }
 
 data_type relu(data_type inp){
@@ -61,7 +58,7 @@ data_type tanh_activation(data_type inp){
     return tanh(inp);
 }
 
-void applyActivation(matrix &mat, function<data_type(data_type)> activation){
+void apply_activation(matrix &mat, function<data_type(data_type)> activation){
     int size = mat.size();
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
@@ -70,7 +67,7 @@ void applyActivation(matrix &mat, function<data_type(data_type)> activation){
     }
 }
 
-void changeMatrixEntry(data_type &inp){
+void change_matrix_entry(data_type &inp){
 
 }
 
@@ -79,7 +76,7 @@ void init_matrix(matrix &mat){
     for (int i = 0; i < size; i++){
         for (int j = 0; j < size; j++){
             mat[i][j] = (data_type)rand() / (data_type)RAND_MAX;
-            changeMatrixEntry(mat[i][j]);
+            change_matrix_entry(mat[i][j]);
         }
     }
 }
@@ -103,8 +100,14 @@ void print_matrix(matrix &mat){
 }
 
 
-void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output){
+void print_vector(vector<data_type> &v){
+    for (int i = 0; i < v.size(); i++){
+        cout << v[i] << " ";
+    }
+    cout << endl;
+}
 
+void pool_max(matrix &input, int pool_size, matrix &output){
     int n = input.size();
     int m = input[0].size();
     int o_n = n / pool_size;
@@ -163,17 +166,24 @@ vector<data_type> sigmoid(vector<data_type> &inp){
     return res;
 }
 
-void applyNormalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation){
+void apply_normalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation){
     out = normalisation(inp);
 }
 
 // read ((matDim x matDim) * dim1 ) * dim2 matrices from file
 // eg. ((5 * 5) x 20 ) x 50; v.size() = 50, v[0].size() = 20
 // also have biases of dim2 size
-// readFile("./trained_weights/conv2.txt", v, bias, 5, 20, 50);
-void readFile(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2) {
+// read_file("./trained_weights/conv2.txt", v, bias, 5, 20, 50);
+void read_weight_file(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2) {
+
     ifstream fin(filename);
     v.resize(dim2);
+
+    if (!fin) {
+        cerr << "Failed to open file " << filename << endl;
+        exit(1);
+    }
+
     for (int i = 0; i < dim2; i++) {
         v[i].resize(dim1);
         for (int j = 0; j < dim1; j++) {
@@ -186,12 +196,29 @@ void readFile(string filename, vector<vector<matrix> > &v, vector<data_type> &bi
             }
         }
     }
+
     bias.resize(dim2);
     for (int i = 0; i < dim2; i++) {
         fin >> bias[i];
     }
-    string temp;
-    fin >> temp;
-    assert(temp == "");
+
 }
+
+void read_image_file(string filename, matrix &v, int dimension) {
+    v.resize(dimension);
+    ifstream fin(filename);
+
+    if (!fin) {
+        cerr << "Failed to open file " << filename << endl;
+        exit(1);
+    }
+
+    for (int i = 0; i < dimension; i++) {
+        v[i].resize(dimension);
+        for (int j = 0; j < dimension; j++) {
+            fin >> v[i][j];
+        }
+    }
+}
+
 

@@ -1,40 +1,43 @@
-#include <bits/stdc++.h>
+#include <functional>
+#include <vector>
+#include <string>
 using namespace std;
 
-#define data_type double
-#define matrix vector<vector<data_type> >
+typedef float data_type;
+typedef vector<vector<data_type> > matrix;
 
+void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output, bool pad);
 
 void convolve(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output);
 
-
-void convolve_and_pad(matrix &input, matrix &kernel, matrix &output);
+void convolve_and_pad(vector<vector<data_type> > &input, vector<vector<data_type> > &kernel, vector<vector<data_type> > &output);
 
 data_type relu(data_type inp);
 
 data_type tanh_activation(data_type inp);
 
-void applyActivation(matrix &mat, function<data_type(data_type)> activation);
+void apply_activation(vector<vector<data_type> > &mat, function<data_type(data_type)> activation);
 
-void changeMatrixEntry(data_type &inp);
+void change_matrix_entry(data_type &inp);
 
-void init_matrix(matrix &mat);
+void init_matrix(vector<vector<data_type> > &mat);
 
-void initialise(matrix &input, int n);
+void initialise(vector<vector<data_type> > &input, int n);
 
-void print_matrix(matrix &mat);
+void print_matrix(vector<vector<data_type> > &mat);
 
 void print_vector(vector<data_type> &v);
 
 void pool_max(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output);
 
-
-void pool_avg(matrix &input, int pool_size, matrix &output);
+void pool_avg(vector<vector<data_type> > &input, int pool_size, vector<vector<data_type> > &output);
 
 vector<data_type> softmax(vector<data_type> &inp);
 
 vector<data_type> sigmoid(vector<data_type> &inp);
 
-void applyNormalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation);
+void apply_normalisation(vector<data_type> &inp, vector<data_type> &out, function<vector<data_type> (vector<data_type>)> normalisation);
 
-void readFile(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2);
+void read_weight_file(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2);
+
+void read_image_file(string filename, matrix &v, int dimension);

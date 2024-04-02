@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -108,7 +109,7 @@ vector<vector<float> > convolutionWithPadding(vector<vector<float> >& input_matr
     cudaMemcpy(d_output, t_output, inputsize*sizeof(float*), cudaMemcpyHostToDevice);
 
 
-    dim3 threadsPerBlock(16, 16);
+    dim3 threadsPerBlock(32, 32);
     dim3 numBlocks((inputsize + threadsPerBlock.x - 1) / threadsPerBlock.x, (inputsize + threadsPerBlock.y - 1) / threadsPerBlock.y);
 
     convolutionWithPaddingKernel<<<numBlocks, threadsPerBlock>>>(d_input, d_kernel, d_output, inputsize, kernelsize, pad);
@@ -118,8 +119,12 @@ vector<vector<float> > convolutionWithPadding(vector<vector<float> >& input_matr
     for(int i=0;i<inputsize;i++){
         cudaMemcpy(output[i].data(),t_output[i],inputsize*sizeof(float),cudaMemcpyDeviceToHost);
         cudaFree(t_output[i]);
+    }
+    for(int i=0;i<kernelsize;i++){
+        cudaFree(t_kernel[i]);
+    }
+    for(int i=0;i<inputsize+2*pad;i++){
         cudaFree(t_input_pad[i]);
-
     }
 
     cudaFree(d_input);
@@ -186,10 +191,13 @@ vector<vector<float> > convolutionWithoutPadding(vector<vector<float> >& input_m
     for(int i=0;i<out;i++){
         cudaMemcpy(output[i].data(),t_output[i],out*sizeof(float),cudaMemcpyDeviceToHost);
         cudaFree(t_output[i]);
-        cudaFree(t_input[i]);
-
     }
-
+    for(int i=0;i<inputsize;i++){
+        cudaFree(t_input[i]);
+    }
+    for(int i=0;i<kernelsize;i++){
+        cudaFree(t_kernel[i]);
+    }
     cudaFree(d_input);
     cudaFree(d_kernel);
     cudaFree(d_output);
@@ -582,8 +590,7 @@ void convolve3d(vector<matrix> &input1, vector<matrix> &input2, data_type bias, 
     output.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1, 0));
     for (int ind = 0; ind < k1; ind++){
         matrix temp = convolutionWithoutPadding(input1[ind], input2[ind]);
-        // temp.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1));
-        // convolve(input1[ind], input2[ind]);
+        temp.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1));
         sum_matrix(output, temp, output);
     }
     matrix bias_matrix(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1, bias));
@@ -613,6 +620,36 @@ void pool3d(vector<matrix> &input, int pool_size, vector<matrix> &output){
     }
 }
 
+void printing(vector<vector<vector<float> > > input){
+    string filename = "output.txt";
+    const char* filename_str = filename.c_str();
+
+    // Open the file for writing
+    ofstream outFile(filename_str);
+
+    // Check if the file is opened successfully
+    if (!outFile.is_open()) {
+        cerr << "Error: Unable to open the file." << endl;
+        return;
+    }
+
+    // Write the data to the file
+    for (int i = 0; i < input.size(); ++i) {
+        for (int j = 0; j < input[i].size(); ++j) {
+            for (int k = 0; k < input[i][j].size(); ++k) {
+                outFile << input[i][j][k] << " ";
+            }
+            outFile << endl;
+        }
+        outFile << endl;
+    }
+
+
+    // Close the file
+    outFile.close();
+
+    cout << "Data has been written to " << filename << endl;
+}
 
 void predict(string image_name){
 
@@ -627,12 +664,13 @@ void predict(string image_name){
     vector<matrix> fc1_output, fc2_output;
 
     convolve_kernels(img_matrix3D, conv1_matrix, conv1_bias, conv1_output);
+    // printing(conv1_output);
     pool3d(conv1_output, 2, pool1_output);
-    // cout << "Pool1 Output: " << pool1_output.size() << " " << pool1_output[0].size() << " " << pool1_output[0][0].size() << endl;
+    cout << "Pool1 Output: " << pool1_output.size() << " " << pool1_output[0].size() << " " << pool1_output[0][0].size() << endl;
     
     convolve_kernels(pool1_output, conv2_matrix, conv2_bias, conv2_output);
     pool3d(conv2_output, 2, pool2_output);
-    // cout << "Pool2 Output: " << pool2_output.size() << " " << pool2_output[0].size() << " " << pool2_output[0][0].size() << endl;
+    cout << "Pool2 Output: " << pool2_output.size() << " " << pool2_output[0].size() << " " << pool2_output[0][0].size() << endl;
 
     convolve_kernels(pool2_output, fc1_matrix, fc1_bias, fc1_output);
     for (int i = 0; i < fc1_output.size(); i++) {

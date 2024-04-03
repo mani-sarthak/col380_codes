@@ -41,3 +41,11 @@ void apply_normalisation(vector<data_type> &inp, vector<data_type> &out, functio
 void read_weight_file(string filename, vector<vector<matrix> > &v, vector<data_type> &bias, int matDim, int dim1, int dim2);
 
 void read_image_file(string filename, matrix &v, int dimension);
+
+void sum_matrix(matrix &input1, matrix &input2, matrix &output);
+
+void convolve3d(vector<matrix> &input1, vector<matrix> &input2, data_type bias, matrix &output);
+
+void convolve_kernels(vector<matrix> &input, vector<vector<matrix> >&kernal, vector<data_type> &bias, vector<matrix> &output);
+
+void pool3d(vector<matrix> &input, int pool_size, vector<matrix> &output);

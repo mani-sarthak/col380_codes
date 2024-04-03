@@ -221,4 +221,55 @@ void read_image_file(string filename, matrix &v, int dimension) {
     }
 }
 
+void sum_matrix(matrix &input1, matrix &input2, matrix &output){
+    int n = input1.size();
+    int m = input1[0].size();
+    assert(n == input2.size());
+    assert(m == input2[0].size());
+    for (int i = 0; i < n; i++){
+        for (int j = 0; j < m; j++){
+            output[i][j] = input1[i][j] + input2[i][j];
+        }
+    }
+}
 
+void convolve3d(vector<matrix> &input1, vector<matrix> &input2, data_type bias, matrix &output){
+    int k1 = input1.size();
+    assert(k1 == input2.size());
+    int n1 = input1[0].size();
+    int m1 = input1[0][0].size();
+    int n2 = input2[0].size();
+    int m2 = input2[0][0].size();
+    output.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1, 0));
+    for (int ind = 0; ind < k1; ind++){
+        matrix temp;
+        temp.resize(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1));
+        convolve(input1[ind], input2[ind], temp);
+        sum_matrix(output, temp, output);
+    }
+    matrix bias_matrix(n1 - n2 + 1, vector<data_type>(m1 - m2 + 1, bias));
+    sum_matrix(output, bias_matrix, output);
+}
+
+
+void convolve_kernels(vector<matrix> &input, vector<vector<matrix> >&kernal, vector<data_type> &bias, vector<matrix> &output){
+    int n = input[0].size();
+    int k1 = input.size(); 
+    int k2 = kernal.size();
+    assert(k1 == kernal[0].size());
+    assert(k2 == bias.size());
+    assert(input[0][0].size() == n);
+    output.resize(k2);
+    for (int i = 0; i < k2; i++){
+        convolve3d(input, kernal[i], bias[i], output[i]);
+    }
+    assert(output.size() == k2);
+}
+
+void pool3d(vector<matrix> &input, int pool_size, vector<matrix> &output){
+    int n = input.size();
+    output.resize(n);
+    for (int i = 0; i < n; i++){
+        pool_max(input[i], pool_size, output[i]);
+    }
+}

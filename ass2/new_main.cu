@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -12,6 +13,7 @@
 #include<algorithm>
 #include<cmath>
 #include<time.h>
+// #include <filesystem>
 
 using namespace std;
 
@@ -25,13 +27,13 @@ string conv2_filename = "./trained_weights/conv2.txt";
 string fc1_filename = "./trained_weights/fc1.txt";
 string fc2_filename = "./trained_weights/fc2.txt";
 
-vector<float> conv1_weights, conv2_weights, fc1_weights, fc2_weights;
-vector<float> conv1_bias, conv2_bias, fc1_bias, fc2_bias;
-float*** layer_outputs;
-float *d_conv1_weights, *d_conv2_weights, *d_fc1_weights, *d_fc2_weights,
-    *d_conv1_bias, *d_conv2_bias, *d_fc1_bias, *d_fc2_bias;
+float* conv1_weights, *conv2_weights, *fc1_weights, *fc2_weights;
+float* conv1_bias, *conv2_bias, *fc1_bias, *fc2_bias;
 
-__global__ void  convolve3d1kernel(float* input,float* kernel, float* output,int inputsize,int kernelsize,int depth){
+float* conv1_weights_cuda, *conv2_weights_cuda, *fc1_weights_cuda, *fc2_weights_cuda;
+float* conv1_bias_cuda, *conv2_bias_cuda, *fc1_bias_cuda, *fc2_bias_cuda;
+
+__global__ void  convolve3d1kernel(float* input,float* kernel, float* output,int inputsize,int kernelsize,int depth,float*bias){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
     int k = blockIdx.z * blockDim.z + threadIdx.z;
@@ -43,31 +45,30 @@ __global__ void  convolve3d1kernel(float* input,float* kernel, float* output,int
                 sum += input[(i+x)*inputsize + (j+y)] * kernel[k*kernelsize*kernelsize + x*kernelsize + y];
             }
         }
-        output[k*out*out + i*out + j] =sum;
+        output[k*out*out + i*out + j] =(sum + bias[k]);
     }
 }
 
-vector<data_type> convolve3d1(vector<data_type>&input, float* d_kernel, int inputsize, int kernelsize, int depth){
+float*convolve3d1(float* input, int inputsize, int kernelsize, int depth){
     int outputsize = inputsize - kernelsize + 1;
-    vector<data_type> output(depth*outputsize*outputsize,0);
+    float* output = new float[outputsize*outputsize*depth];
     float* d_input;
-    // float* d_kernel;
     float* d_output;
 
     cudaMalloc(&d_input, inputsize*inputsize*sizeof(float));
-    // cudaMalloc(&d_kernel, kernelsize*kernelsize*depth*sizeof(float));
+    cudaMemcpy(d_input, input, inputsize*inputsize*sizeof(float), cudaMemcpyHostToDevice);
+
     cudaMalloc(&d_output, outputsize*outputsize*depth*sizeof(float));
 
-    cudaMemcpy(d_input, input.data(), inputsize*inputsize*sizeof(float), cudaMemcpyHostToDevice);
-    // cudaMemcpy(d_kernel, kernel.data(), kernelsize*kernelsize*depth*sizeof(float), cudaMemcpyHostToDevice);
     dim3 grid(1,1,depth);
     dim3 block(outputsize,outputsize,1);
-    convolve3d1kernel<<<grid,block>>>(d_input,d_kernel,d_output,inputsize,kernelsize,depth);
-    cudaMemcpy(output.data(), d_output, outputsize*outputsize*depth*sizeof(float), cudaMemcpyDeviceToHost);
+    convolve3d1kernel<<<grid,block>>>(d_input,conv1_weights_cuda,d_output,inputsize,kernelsize,depth,conv1_bias_cuda);
 
-    cudaFree(d_input);
-    // cudaFree(d_kernel);
-    cudaFree(d_output);
+    cudaMemcpy(output, d_output, outputsize*outputsize*depth*sizeof(float), cudaMemcpyDeviceToHost);
+
+    cudaFree(&d_input);
+    cudaFree(&d_output);
+
     return output;
 }
 
@@ -91,28 +92,50 @@ __global__ void convolve3d2kernel(float* input,float* kernel, float* output,int 
     }
 }
 
-vector<data_type> convolve3d2(vector<data_type> &input, float* d_kernel, int inputsize, int kernelsize, int depth,int channels){
+float* convolve3d2(float* input, int inputsize, int kernelsize, int depth,int channels, string type){
 
     int outputsize = inputsize - kernelsize + 1;
-    vector<data_type> output(channels*outputsize*outputsize,0);
+    float* output = new float[outputsize*outputsize*channels];
+
     float* d_input;
-    // float* d_kernel;
     float* d_output;
 
     cudaMalloc(&d_input, inputsize*inputsize*depth*sizeof(float));
-    // cudaMalloc(&d_kernel, kernelsize*kernelsize*depth*channels*sizeof(float));
+    cudaMemcpy(d_input, input, inputsize*inputsize*depth*sizeof(float), cudaMemcpyHostToDevice);
+
     cudaMalloc(&d_output, outputsize*outputsize*channels*sizeof(float));
 
-    cudaMemcpy(d_input, input.data(), inputsize*inputsize*depth*sizeof(float), cudaMemcpyHostToDevice);
-    // cudaMemcpy(d_kernel, kernel.data(), kernelsize*kernelsize*depth*channels*sizeof(float), cudaMemcpyHostToDevice);
     dim3 grid(1,1,depth*channels);
     dim3 block(outputsize,outputsize,1);
-    convolve3d2kernel<<<grid,block>>>(d_input,d_kernel,d_output,inputsize,kernelsize,depth,channels);
-    cudaMemcpy(output.data(), d_output, outputsize*outputsize*channels*sizeof(float), cudaMemcpyDeviceToHost);
+    if(type == "conv2"){
+        convolve3d2kernel<<<grid,block>>>(d_input,conv2_weights_cuda,d_output,inputsize,kernelsize,depth,channels);
+    }else if(type == "fc1"){
+        convolve3d2kernel<<<grid,block>>>(d_input,fc1_weights_cuda,d_output,inputsize,kernelsize,depth,channels);
+    }else if(type == "fc2"){
+        convolve3d2kernel<<<grid,block>>>(d_input,fc2_weights_cuda,d_output,inputsize,kernelsize,depth,channels);
+    }else{
+        convolve3d2kernel<<<grid,block>>>(d_input,conv1_weights_cuda,d_output,inputsize,kernelsize,depth,channels);
+    }
+    cudaMemcpy(output, d_output, outputsize*outputsize*channels*sizeof(float), cudaMemcpyDeviceToHost);
 
-    cudaFree(d_input);
-    // cudaFree(d_kernel);
-    cudaFree(d_output);
+    cudaFree(&d_input);
+    cudaFree(&d_output);
+
+    for(int i=0;i<channels;i++){
+        for(int j=0;j<outputsize;j++){
+            for(int k=0;k<outputsize;k++){
+                if(type == "fc1"){
+                    output[i*outputsize*outputsize + j*outputsize + k] += fc1_bias[i];
+                }else if(type == "fc2"){
+                    output[i*outputsize*outputsize + j*outputsize + k] += fc2_bias[i];
+                }else if(type == "conv1"){
+                    output[i*outputsize*outputsize + j*outputsize + k] += conv1_bias[i];
+                }else if(type == "conv2"){
+                    output[i*outputsize*outputsize + j*outputsize + k] += conv2_bias[i];
+                }
+            }
+        }
+    }
     return output;
 }
 
@@ -134,64 +157,50 @@ __global__ void pool3dkernel(float* input, float*output, int inputsize, int pool
     }
 }
 
-vector<data_type> pool3d(vector<data_type>&input, int inputsize, int poolsize, int depth){
+float* pool3d(float* input, int inputsize, int poolsize, int depth){
     int outputsize = inputsize/poolsize;
-    vector<data_type> output(depth*outputsize*outputsize,0);
+    float* output = new float[outputsize*outputsize*depth];
     float* d_input;
     float* d_output;
 
     cudaMalloc(&d_input, inputsize*inputsize*depth*sizeof(float));
+    cudaMemcpy(d_input, input, inputsize*inputsize*depth*sizeof(float), cudaMemcpyHostToDevice);
+
     cudaMalloc(&d_output, outputsize*outputsize*depth*sizeof(float));
 
-    cudaMemcpy(d_input, input.data(), inputsize*inputsize*depth*sizeof(float), cudaMemcpyHostToDevice);
     dim3 grid(1,1,depth);
     dim3 block(outputsize,outputsize,1);
+
     pool3dkernel<<<grid,block>>>(d_input,d_output,inputsize,poolsize,depth);
-    cudaMemcpy(output.data(), d_output, outputsize*outputsize*depth*sizeof(float), cudaMemcpyDeviceToHost);
 
-    cudaFree(d_input);
-    cudaFree(d_output);
+    cudaMemcpy(output, d_output, outputsize*outputsize*depth*sizeof(float), cudaMemcpyDeviceToHost);
+
+    cudaFree(&d_input);
+    cudaFree(&d_output);
     return output;
 }
 
-vector<float> relu(vector<float>&input){
-    vector<float> output(input.size(),0);
-    for(int i=0;i<input.size();i++){
-        output[i] = fmax(0,input[i]);
+void relu(float* input,int size){
+    for(int i=0;i<size;i++){
+        input[i] = fmax(0,input[i]);
     }
-    return output;
 }
 
-vector<float> softmax(vector<float>&input){
-    vector<float> output(input.size(),0);
+void softmax(float* input,int size){
     float sum = 0.0;
-    for(int i=0;i<input.size();i++){
-        output[i] = exp(input[i]);
-        sum += output[i];
+    for(int i=0;i<size;i++){
+        sum += (float)exp(input[i]);
     }
-    for(int i=0;i<input.size();i++){
-        output[i] /= sum;
-    }
-    return output;
-}
-
-void addbias(vector<float>&input, vector<float>&bias,int size, int depth){
-    for(int i=0;i<depth;i++){
-        vector<float> temp(size,bias[i]);
-        for(int j=0;j<size;j++){
-            input[i*size+j] += temp[j];
-        }
+    for(int i=0;i<size;i++){
+        input[i] = (float)exp(input[i])/sum;
     }
 }
 
-
-void read_weight_file(string filename, vector<data_type> &kernel, vector<data_type> &bias,
-                      float** d_kernel, float** d_bias,
-                      int dim1, int dim2, int depth) {
+void read_weight_file(string filename, float* kernel, float* bias, int dim1,int dim2, int depth) {
     const char* filename_str = filename.c_str();
 
     ifstream fin(filename_str);
-    kernel.resize(dim1*dim1*dim2*depth);
+    // kernel.resize(dim1*dim1*dim2*depth);
 
     if (!fin) {
         cerr << "Failed to open file " << filename << endl;
@@ -201,26 +210,17 @@ void read_weight_file(string filename, vector<data_type> &kernel, vector<data_ty
     for (int i = 0; i < depth*dim1*dim1*dim2; i++) {
         fin >> kernel[i];
     }
-    bias.resize(depth);
+    // bias.resize(depth);
     for (int i = 0; i < depth; i++) {
         fin >> bias[i];
     }
-
-    cudaMalloc(d_kernel, kernel.size() * sizeof(float));
-    cudaMemcpy(*d_kernel, kernel.data(), kernel.size() * sizeof(float), cudaMemcpyHostToDevice);
-
-    cudaMalloc(d_bias, bias.size() * sizeof(float));
-    cudaMemcpy(*d_bias, bias.data(), bias.size() * sizeof(float), cudaMemcpyHostToDevice);
-
 }
 
-
-
-void read_image_file(string filename, vector<data_type> &image, int dim1) {
+void read_image_file(string filename, float* image, int dim1) {
     const char* filename_str = filename.c_str();
 
     ifstream fin(filename_str);
-    image.resize(dim1*dim1);
+    // image.resize(dim1*dim1);
 
     if (!fin) {
         cerr << "Failed to open file " << filename << endl;
@@ -234,30 +234,27 @@ void read_image_file(string filename, vector<data_type> &image, int dim1) {
 
 
 void lenet(string filename){
-    vector<float> img;
+    float* img = new float[28*28];
     read_image_file(filename,img,28);
     struct timespec start, end;
     long timediff;
     clock_gettime(CLOCK_MONOTONIC, &start);
-    vector<float> out1 = convolve3d1(img,d_conv1_weights,28,5,20);
-    addbias(out1,conv1_bias,24*24,20);
-    vector<float> out2 =  pool3d(out1,24,2,20);
-    vector<float> out3 = convolve3d2(out2,d_conv2_weights,12,5,20,50);
-    addbias(out3,conv2_bias,8*8,50);
-    vector<float> out4 = pool3d(out3,8,2,50);
-    vector<float> out5 = convolve3d2(out4,d_fc1_weights,4,4,50,500);
-    addbias(out5,fc1_bias,1*1,500);
-    vector<float> out6 = relu(out5);
-    vector<float> out7 = convolve3d2(out6,d_fc2_weights,1,1,500,10);
-    addbias(out7,fc2_bias,1*1,10);
-    vector<float> out8 = softmax(out7);
+
+    float* out1 = convolve3d1(img,28,5,20);
+    float* out2 =  pool3d(out1,24,2,20);
+    float* out3 = convolve3d2(out2,12,5,20,50,"conv2");
+    float* out4 = pool3d(out3,8,2,50);
+    float* out5= convolve3d2(out4,4,4,50,500,"fc1");
+    relu(out5,1*1*500);
+    float* out6 = convolvxe3d2(out5,1,1,500,10,"fc2");
+    softmax(out6,1*1*10);
     clock_gettime(CLOCK_MONOTONIC, &end);
     timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
     std::cout << "Time taken: " << timediff << " milliseconds" << std::endl;
 
-    vector<pair<data_type, int> > predictions(out8.size());
+    vector<pair<data_type, int> > predictions(10);
     for (int i = 0; i < predictions.size(); i++) {
-        predictions[i] = make_pair(100.0 *out8[i], i);
+        predictions[i] = make_pair(100.0 *out6[i], i);
     }
 
     sort(predictions.rbegin(), predictions.rend());
@@ -265,6 +262,12 @@ void lenet(string filename){
     for (int i = 0; i < 5; i++) {
         cout << predictions[i].first << " class " << predictions[i].second << '\n';
     }
+    free(out1);
+    free(out2);
+    free(out3);
+    free(out4);
+    free(out5);
+    free(out6);
 }
 
 
@@ -274,26 +277,69 @@ int main (int argc, char *argv[]) {
         cerr << "Filename required as argument\n";
         exit(1);
     }
+    conv1_weights = new float[5*5*1*20];
+    conv1_bias = new float[20];
+    read_weight_file(conv1_filename, conv1_weights, conv1_bias,5,1,20);
 
-    read_weight_file(conv1_filename, conv1_weights, conv1_bias, &d_conv1_weights, &d_conv1_bias, 5, 1, 20);
-    read_weight_file(conv2_filename, conv2_weights, conv2_bias, &d_conv2_weights, &d_conv2_bias, 5, 20, 50);
+    cudaMalloc(&conv1_weights_cuda, 5*5*1*20*sizeof(float));
+    cudaMemcpy(conv1_weights_cuda, conv1_weights, 5*5*1*20*sizeof(float), cudaMemcpyHostToDevice);
 
-    read_weight_file(fc1_filename, fc1_weights, fc1_bias, &d_fc1_weights, &d_fc1_bias, 4, 50, 500);
-    read_weight_file(fc2_filename, fc2_weights, fc2_bias, &d_fc2_weights, &d_fc2_bias, 1, 500, 10);
+    cudaMalloc(&conv1_bias_cuda, 20*sizeof(float));
+    cudaMemcpy(conv1_bias_cuda, conv1_bias, 20*sizeof(float), cudaMemcpyHostToDevice);
 
-    for (int i = 1; i < argc; i++) {
+    conv2_weights = new float[5*5*20*50];
+    conv2_bias = new float[50];
+    read_weight_file(conv2_filename, conv2_weights, conv2_bias, 5, 20, 50);
+
+    cudaMalloc(&conv2_weights_cuda, 5*5*20*50*sizeof(float));
+    cudaMemcpy(conv2_weights_cuda, conv2_weights, 5*5*20*50*sizeof(float), cudaMemcpyHostToDevice);
+
+    cudaMalloc(&conv2_bias_cuda, 50*sizeof(float));
+    cudaMemcpy(conv2_bias_cuda, conv2_bias, 50*sizeof(float), cudaMemcpyHostToDevice);
+
+    fc1_weights = new float[4*4*50*500];
+    fc1_bias = new float[500];
+    read_weight_file(fc1_filename, fc1_weights, fc1_bias, 4, 50, 500);
+
+    cudaMalloc(&fc1_weights_cuda, 4*4*50*500*sizeof(float));
+    cudaMemcpy(fc1_weights_cuda, fc1_weights, 4*4*50*500*sizeof(float), cudaMemcpyHostToDevice);
+
+    cudaMalloc(&fc1_bias_cuda, 500*sizeof(float));
+    cudaMemcpy(fc1_bias_cuda, fc1_bias, 500*sizeof(float), cudaMemcpyHostToDevice);
+
+    fc2_weights = new float[1*1*500*10];
+    fc2_bias = new float[10];
+    read_weight_file(fc2_filename, fc2_weights, fc2_bias, 1, 500, 10);
+
+    cudaMalloc(&fc2_weights_cuda, 1*1*500*10*sizeof(float));
+    cudaMemcpy(fc2_weights_cuda, fc2_weights, 1*1*500*10*sizeof(float), cudaMemcpyHostToDevice);
+
+    cudaMalloc(&fc2_bias_cuda, 10*sizeof(float));
+    cudaMemcpy(fc2_bias_cuda, fc2_bias, 10*sizeof(float), cudaMemcpyHostToDevice);
+
+    
+    // strin directory = argv[i];
+    // for (const auto& entry : fs::directory_iterator(directory)) {
+    //     lenet(entry.path().string());
+    // }
+    for(int i=1;i<argc;i++){
         lenet(argv[i]);
     }
-
-    cudaFree(d_conv1_weights);
-    cudaFree(d_conv2_weights);
-    cudaFree(d_fc1_weights);
-    cudaFree(d_fc2_weights);
-    cudaFree(d_conv1_bias);
-    cudaFree(d_conv2_bias);
-    cudaFree(d_fc1_bias);
-    cudaFree(d_fc2_bias);
-
-
+    free(conv1_weights);
+    free(conv1_bias);
+    free(conv2_weights);
+    free(conv2_bias);
+    free(fc1_weights);
+    free(fc1_bias);
+    free(fc2_weights);
+    free(fc2_bias);
+    cudaFree(conv1_weights_cuda);
+    cudaFree(conv1_bias_cuda);
+    cudaFree(conv2_weights_cuda);
+    cudaFree(conv2_bias_cuda);
+    cudaFree(fc1_weights_cuda);
+    cudaFree(fc1_bias_cuda);
+    cudaFree(fc2_weights_cuda);
+    cudaFree(fc2_bias_cuda);
     return 0;
 }

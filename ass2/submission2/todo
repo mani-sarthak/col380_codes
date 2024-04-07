@@ -1,0 +1,41 @@
+A Makefile is no longer mandatory. 
+You do not need to upload images, pre-trained weights or pre-processed images. 
+
+
+With Subtask 1 and Subtask 2, we expect to pass the matrices, select padding, select activation functions, max/avg pooling, and softmax/sigmoid through command line arguments. 
+
+In Subtask 3 and Subtask 4, we expect your program execution to take
+
+the filename for a 28x28 image from the img folder,
+read the pre-trained weights from the weights folder,
+and output the top 5 softmax probabilities.
+
+
+
+Here is an exact example for subtask 1:
+
+./subtask1 [task of choice 1=convolution, 2=non-linear-activations, 3=subsampling, 4=converting a vector]
+
+1. With convolution, You'll be given N, M, and P. A square matrix of size N and a kernel of size M along with padding value P will be given. All the values will be space seperated and look something like
+
+./subtask1 1 15 5 0 13 73 72 68 82 0 0 0 237 .... 45  4 6 4 8 4 4 5 
+2. You'll be given an activation function (0=relu 1=tanh), N and M of the matrix size and matrix itself. 
+
+./subtask1 2 0 15 5 13 73 72 68 82 0 0 0 237 .... 45  4 6 4 8 4 4 5 
+3. You will be given pooling function (0=max pool, 1=avg pool), size of matrix N, and the matrix. 
+
+4. You will be given the function (0=sigmoid or 1=softmax), and a vector of numbers.
+
+With subtask 2, you can follow the same execution format.
+
+./subtask2 [task of choice 1=convolution, 2=non-linear-activations, 3=subsampling, 4=converting a vector]
+With subtask 3, we assume the files are preprocessed using the preprocess.py function in your submission folder. We have written a statement in the make file for its execution. So we will be running a simple 
+
+./subtask3 
+where your code takes the files that you preprocessed from pre-proc-img, runs files, and prints the top 5 probabilities in the output folder with the same name as the input file. 
+
+With subtask 4, the execution will be 
+
+./subtask4 [1 - with streams, 0 - without streams] 
+I hope this clarifies the execution of your submission. I am attaching a sample Makefile here. 
+

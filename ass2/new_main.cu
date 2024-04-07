@@ -265,12 +265,12 @@ void read_image_file(string filename, float* image, int dim1) {
 }
 
 
-void lenet(string filename){
-    float* img = new float[28*28];
-    read_image_file(filename,img,28);
-    struct timespec start, end;
-    long timediff;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+void lenet(float* img){
+    // float* img = new float[28*28];
+    // read_image_file(filename,img,28);
+    // struct timespec start, end;
+    // long timediff;
+    // clock_gettime(CLOCK_MONOTONIC, &start);
 
     float* out1 = convolve3d1(img,28,5,20);
     float* out2 =  pool3d(out1,24,2,20);
@@ -281,9 +281,9 @@ void lenet(string filename){
     relu(out5,1*1*500);
     float* out6 = convolve3d2(out5,1,1,500,10,"fc2");
     softmax(out6,1*1*10);
-    clock_gettime(CLOCK_MONOTONIC, &end);
-    timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
-    std::cout << "Time taken: " << timediff << " milliseconds" << std::endl;
+    // clock_gettime(CLOCK_MONOTONIC, &end);
+    // timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+    // std::cout << "Time taken: " << timediff << " milliseconds" << std::endl;
 
     vector<pair<data_type, int> > predictions(10);
     for (int i = 0; i < predictions.size(); i++) {
@@ -350,9 +350,20 @@ int main (int argc, char *argv[]) {
     cudaMalloc(&fc2_bias_cuda, 10*sizeof(float));
     cudaMemcpy(fc2_bias_cuda, fc2_bias, 10*sizeof(float), cudaMemcpyHostToDevice);
 
-    for(int i=1;i<argc;i++){
-        lenet(argv[i]);
+    float img_matrices[argc - 1][28 * 28];
+    for (int i = 1; i < argc; i++) {
+        read_image_file(argv[i], img_matrices[i-1], 28);
     }
+
+    struct timespec start, end;
+    long timediff;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+    for(int i=1;i<argc;i++){
+        lenet(img_matrices[i-1]);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+    std::cout << "Time taken: " << timediff << " milliseconds" << std::endl;
     free(conv1_weights);
     free(conv1_bias);
     free(conv2_weights);

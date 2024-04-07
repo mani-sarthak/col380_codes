@@ -4,7 +4,6 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-// #include <cuda_runtime.h>
 #include "cuda_runtime.h"
 #include <limits>
 #include <cfloat>
@@ -13,7 +12,6 @@
 #include<algorithm>
 #include<cmath>
 #include<time.h>
-// #include <filesystem>
 
 using namespace std;
 
@@ -72,6 +70,44 @@ float*convolve3d1(float* input, int inputsize, int kernelsize, int depth){
     return output;
 }
 
+__global__ void addbiaskernel(float* output, float* bias, int size,int depth){
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    int j = blockIdx.y * blockDim.y + threadIdx.y;
+    int k = blockIdx.z * blockDim.z + threadIdx.z;
+    if(i<size && j<size && k<depth){
+        output[k*size*size + i*size + j] += bias[k];
+    }
+}
+void addbias(float* input, int size, int depth,string type){
+    float* output = new float[size*size*depth];
+    float* d_input;
+
+    cudaMalloc(&d_input, size*size*depth*sizeof(float));
+    cudaMemcpy(d_input, input, size*size*depth*sizeof(float), cudaMemcpyHostToDevice);
+
+    dim3 grid(1,1,depth);
+    dim3 block(size,size,1);
+    if(type == "conv1"){
+        addbiaskernel<<<grid,block>>>(d_input,conv1_bias_cuda,size,depth);
+    }
+    else if(type == "conv2"){
+        addbiaskernel<<<grid,block>>>(d_input,conv2_bias_cuda,size,depth);
+    }
+    else if(type == "fc1"){
+        addbiaskernel<<<grid,block>>>(d_input,fc1_bias_cuda,size,depth);
+    }
+    else if(type == "fc2"){
+        addbiaskernel<<<grid,block>>>(d_input,fc2_bias_cuda,size,depth);
+    }
+
+    cudaMemcpy(input, d_input, size*size*depth*sizeof(float), cudaMemcpyDeviceToHost);
+
+    cudaFree(&d_input);
+    // cudaFree(&d_output);
+
+    // return output;
+}
+
 __global__ void convolve3d2kernel(float* input,float* kernel, float* output,int inputsize,int kernelsize,int depth,int channels){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     int j = blockIdx.y * blockDim.y + threadIdx.y;
@@ -120,7 +156,9 @@ float* convolve3d2(float* input, int inputsize, int kernelsize, int depth,int ch
 
     cudaFree(&d_input);
     cudaFree(&d_output);
-
+    if(type == "conv2"){
+        return output;
+    }
     for(int i=0;i<channels;i++){
         for(int j=0;j<outputsize;j++){
             for(int k=0;k<outputsize;k++){
@@ -128,10 +166,6 @@ float* convolve3d2(float* input, int inputsize, int kernelsize, int depth,int ch
                     output[i*outputsize*outputsize + j*outputsize + k] += fc1_bias[i];
                 }else if(type == "fc2"){
                     output[i*outputsize*outputsize + j*outputsize + k] += fc2_bias[i];
-                }else if(type == "conv1"){
-                    output[i*outputsize*outputsize + j*outputsize + k] += conv1_bias[i];
-                }else if(type == "conv2"){
-                    output[i*outputsize*outputsize + j*outputsize + k] += conv2_bias[i];
                 }
             }
         }
@@ -200,7 +234,6 @@ void read_weight_file(string filename, float* kernel, float* bias, int dim1,int 
     const char* filename_str = filename.c_str();
 
     ifstream fin(filename_str);
-    // kernel.resize(dim1*dim1*dim2*depth);
 
     if (!fin) {
         cerr << "Failed to open file " << filename << endl;
@@ -210,7 +243,7 @@ void read_weight_file(string filename, float* kernel, float* bias, int dim1,int 
     for (int i = 0; i < depth*dim1*dim1*dim2; i++) {
         fin >> kernel[i];
     }
-    // bias.resize(depth);
+
     for (int i = 0; i < depth; i++) {
         fin >> bias[i];
     }
@@ -220,7 +253,6 @@ void read_image_file(string filename, float* image, int dim1) {
     const char* filename_str = filename.c_str();
 
     ifstream fin(filename_str);
-    // image.resize(dim1*dim1);
 
     if (!fin) {
         cerr << "Failed to open file " << filename << endl;
@@ -243,10 +275,11 @@ void lenet(string filename){
     float* out1 = convolve3d1(img,28,5,20);
     float* out2 =  pool3d(out1,24,2,20);
     float* out3 = convolve3d2(out2,12,5,20,50,"conv2");
+    addbias(out3,8,50,"conv2");
     float* out4 = pool3d(out3,8,2,50);
     float* out5= convolve3d2(out4,4,4,50,500,"fc1");
     relu(out5,1*1*500);
-    float* out6 = convolvxe3d2(out5,1,1,500,10,"fc2");
+    float* out6 = convolve3d2(out5,1,1,500,10,"fc2");
     softmax(out6,1*1*10);
     clock_gettime(CLOCK_MONOTONIC, &end);
     timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
@@ -317,11 +350,6 @@ int main (int argc, char *argv[]) {
     cudaMalloc(&fc2_bias_cuda, 10*sizeof(float));
     cudaMemcpy(fc2_bias_cuda, fc2_bias, 10*sizeof(float), cudaMemcpyHostToDevice);
 
-    
-    // strin directory = argv[i];
-    // for (const auto& entry : fs::directory_iterator(directory)) {
-    //     lenet(entry.path().string());
-    // }
     for(int i=1;i<argc;i++){
         lenet(argv[i]);
     }

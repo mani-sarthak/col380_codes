@@ -1,0 +1,19 @@
+1. create perfect maze of dimension 64*64 using MPI using bfs and kruskal algorithms (3 + 5)
+start from top right, end at bottom left
+
+2. solve the maze using DFS and dijkastra algorithms (3 + 5)
+
+3. report explaining 
+a. how to generate and solve mazes using graph algorithms 
+b. How you take the 4 sequential graph algorithms and implement them in MPI for 4 processes
+    (i) Discuss use of synchronization primitives for correctness (if any)
+    (ii) MPI blocking vs. non-blocking calls used (if any)
+    (iii) MPI reductions used (if any)
+    (iv) Any optimizations done to handle sparsity of the maze graph, as each
+            node in the a maze has constant number of neighbors in the graph
+c. Analyze analytically the speedup and efficiency of your MPI implementation
+    over sequential (in order notation, not through actual measurement)
+
+Instruction Program will be run using machine with 4 cores and 4 processes. 
+ $mpirun -np 4 ./maze.out -g [bfs/kruskal] -s [dfs/dijkstra]
+ Makefile generate the executable file maze.out

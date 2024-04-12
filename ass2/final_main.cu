@@ -20,11 +20,11 @@ using namespace std;
 
 #define data_type float
 
-string conv1_filename = "./trained_weights/conv1.txt";
-string conv2_filename = "./trained_weights/conv2.txt";
+string conv1_filename = "./weights/conv1.txt";
+string conv2_filename = "./weights/conv2.txt";
 
-string fc1_filename = "./trained_weights/fc1.txt";
-string fc2_filename = "./trained_weights/fc2.txt";
+string fc1_filename = "./weights/fc1.txt";
+string fc2_filename = "./weights/fc2.txt";
 
 float* conv1_weights, *conv2_weights, *fc1_weights, *fc2_weights;
 float* conv1_bias, *conv2_bias, *fc1_bias, *fc2_bias;
@@ -219,6 +219,8 @@ void lenet(){
     convolve3d2(1, 1, 500, 10, 6);
     softmax(10);
     cudaMemcpy(h_layer6, d_layer6, 10 * sizeof(float), cudaMemcpyDeviceToHost);
+
+    
     // clock_gettime(CLOCK_MONOTONIC, &end);
     // timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
     // std::cout << "Time taken: " << timediff << " milliseconds" << std::endl;
@@ -302,14 +304,24 @@ int main (int argc, char *argv[]) {
         read_image_file(argv[i], img_matrices[i-1], 28);
     }
     
-    // strin directory = argv[i];
-    // for (const auto& entry : fs::directory_iterator(directory)) {
-    //     lenet(entry.path().string());
-    // }
+
+
+    struct timespec start, end;
+    long timediff;
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+
     for(int i = 1; i < argc; i++){
         cudaMemcpy(d_layer0, img_matrices[i-1], 28 * 28 * sizeof(float), cudaMemcpyHostToDevice);
         lenet();
     }
+
+
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
+    cout << "Time taken: " << timediff << " milliseconds" << endl;
+
+
     free(conv1_weights);
     free(conv1_bias);
     free(conv2_weights);

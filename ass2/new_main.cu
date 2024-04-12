@@ -355,15 +355,26 @@ int main (int argc, char *argv[]) {
         read_image_file(argv[i], img_matrices[i-1], 28);
     }
 
+
+
     struct timespec start, end;
     long timediff;
     clock_gettime(CLOCK_MONOTONIC, &start);
+
+
+
     for(int i=1;i<argc;i++){
         lenet(img_matrices[i-1]);
     }
+
+
+
     clock_gettime(CLOCK_MONOTONIC, &end);
     timediff = (end.tv_sec - start.tv_sec) * 1000 + (end.tv_nsec - start.tv_nsec) / 1000000;
-    std::cout << "Time taken: " << timediff << " milliseconds" << std::endl;
+    cout << "Time taken: " << timediff << " milliseconds" << endl;
+    
+    
+    
     free(conv1_weights);
     free(conv1_bias);
     free(conv2_weights);
